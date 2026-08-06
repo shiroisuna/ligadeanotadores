@@ -9,10 +9,11 @@ const jugadoresRoutes = require('./routes/jugadoresRoutes');
 const temporadasRoutes = require('./routes/temporadasRoutes');
 const juegosRoutes = require('./routes/juegosRoutes');
 const boxscoreRoutes = require('./routes/boxscoreRoutes');
-// A medida que crees los demás módulos (posiciones, lideres,
-// control-lanzadores, cuadro-honor) se importan y se montan igual que
-// los de abajo. posiciones y lideres son solo lectura de vistas SQL,
-// no tienen tabla propia.
+const posicionesRoutes = require('./routes/posicionesRoutes');
+const lideresRoutes = require('./routes/lideresRoutes');
+const controlLanzadoresRoutes = require('./routes/controlLanzadoresRoutes');
+const cuadroHonorRoutes = require('./routes/cuadroHonorRoutes');
+// Los 10 módulos del mapa del sitio original ya están todos aquí.
 
 const app = express();
 
@@ -28,6 +29,10 @@ app.use('/api/jugadores', jugadoresRoutes);
 app.use('/api/temporadas', temporadasRoutes);
 app.use('/api/juegos', juegosRoutes);
 app.use('/api/boxscore', boxscoreRoutes);
+app.use('/api/posiciones', posicionesRoutes);
+app.use('/api/lideres', lideresRoutes);
+app.use('/api/control-lanzadores', controlLanzadoresRoutes);
+app.use('/api/cuadro-honor', cuadroHonorRoutes);
 
 app.use(errorHandler);
 
