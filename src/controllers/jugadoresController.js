@@ -45,7 +45,22 @@ async function eliminarDeRoster(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// El jugador_id sale del token (req.usuario), nunca de la URL — así un
+// jugador no puede pedir el perfil de otro cambiando un parámetro.
+async function miPerfil(req, res, next) {
+  try {
+    res.json(await jugadoresService.misEquipos(req.usuario.jugador_id));
+  } catch (err) { next(err); }
+}
+
+async function perfilContacto(req, res, next) {
+  try {
+    res.json(await jugadoresService.perfilContacto(req.params.roster_id, req.usuario));
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   listar, obtener, crear, actualizar, eliminar,
   listarRoster, agregarARoster, actualizarRoster, eliminarDeRoster,
+  miPerfil, perfilContacto,
 };

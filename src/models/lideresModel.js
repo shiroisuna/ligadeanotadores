@@ -55,4 +55,44 @@ async function lideresPitcheo(temporada_categoria_id, stat, limit) {
   return rows;
 }
 
-module.exports = { STATS_BATEO, STATS_PITCHEO, lideresBateo, lideresPitcheo };
+async function estadisticasBateoPorEquipo(temporada_categoria_id, equipo_inscrito_id) {
+  const [rows] = await pool.execute(
+    `SELECT * FROM vw_bateo_acumulado
+     WHERE temporada_categoria_id = ? AND equipo_inscrito_id = ?
+     ORDER BY promedio_bateo DESC`,
+    [temporada_categoria_id, equipo_inscrito_id]
+  );
+  return rows;
+}
+
+async function estadisticasPitcheoPorEquipo(temporada_categoria_id, equipo_inscrito_id) {
+  const [rows] = await pool.execute(
+    `SELECT * FROM vw_pitcheo_acumulado
+     WHERE temporada_categoria_id = ? AND equipo_inscrito_id = ?
+     ORDER BY innings_lanzados DESC`,
+    [temporada_categoria_id, equipo_inscrito_id]
+  );
+  return rows;
+}
+
+async function estadisticasPorJugador(roster_id) {
+  const [bateo] = await pool.execute('SELECT * FROM vw_bateo_acumulado WHERE roster_id = ?', [roster_id]);
+  const [pitcheo] = await pool.execute('SELECT * FROM vw_pitcheo_acumulado WHERE roster_id = ?', [roster_id]);
+  const [roster] = await pool.execute(
+    `SELECT r.numero_camiseta, j.foto_url
+     FROM roster r JOIN jugadores j ON j.id = r.jugador_id
+     WHERE r.id = ?`,
+    [roster_id]
+  );
+  return {
+    numero_camiseta: roster[0] ? roster[0].numero_camiseta : null,
+    foto_url: roster[0] ? roster[0].foto_url : null,
+    bateo: bateo[0] || null,
+    pitcheo: pitcheo[0] || null,
+  };
+}
+
+module.exports = {
+  STATS_BATEO, STATS_PITCHEO, lideresBateo, lideresPitcheo,
+  estadisticasBateoPorEquipo, estadisticasPitcheoPorEquipo, estadisticasPorJugador,
+};

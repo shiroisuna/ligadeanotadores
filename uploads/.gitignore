@@ -1,0 +1,5 @@
+# Las imágenes subidas no van al control de versiones, solo la estructura
+*
+!.gitignore
+!logos/.gitkeep
+!jugadores/.gitkeep

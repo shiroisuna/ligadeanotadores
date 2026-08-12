@@ -8,6 +8,9 @@ function errorHandler(err, req, res, next) {
   if (err.code === 'ER_NO_REFERENCED_ROW_2') {
     return res.status(400).json({ error: 'Referencia inválida (revisa los IDs relacionados)' });
   }
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ error: 'La imagen pesa demasiado (máximo 5MB)' });
+  }
 
   res.status(err.status || 500).json({ error: err.message || 'Error interno del servidor' });
 }

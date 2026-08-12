@@ -8,5 +8,9 @@ const controller = require('../controllers/lideresController');
 // GET /api/lideres/pitcheo?temporada_categoria_id=1&stat=efectividad&limit=5
 router.get('/bateo', controller.bateo);
 router.get('/pitcheo', controller.pitcheo);
+// Perfil completo (todas las columnas) de un jugador
+router.get('/jugador/:roster_id', controller.porJugador);
+// Estadística completa de todo el roster de un equipo, en esta categoría
+router.get('/equipo/:equipo_inscrito_id', controller.porEquipo); // ?temporada_categoria_id=X
 
 module.exports = router;

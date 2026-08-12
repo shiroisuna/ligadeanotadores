@@ -36,4 +36,26 @@ async function lideresPitcheo({ temporada_categoria_id, stat, limit }) {
   return lideresModel.lideresPitcheo(temporada_categoria_id, stat, limit);
 }
 
-module.exports = { lideresBateo, lideresPitcheo };
+async function estadisticasPorEquipo(temporada_categoria_id, equipo_inscrito_id) {
+  if (!temporada_categoria_id || !equipo_inscrito_id) {
+    const err = new Error('temporada_categoria_id y equipo_inscrito_id son requeridos');
+    err.status = 400;
+    throw err;
+  }
+  const [bateo, pitcheo] = await Promise.all([
+    lideresModel.estadisticasBateoPorEquipo(temporada_categoria_id, equipo_inscrito_id),
+    lideresModel.estadisticasPitcheoPorEquipo(temporada_categoria_id, equipo_inscrito_id),
+  ]);
+  return { bateo, pitcheo };
+}
+
+async function estadisticasPorJugador(roster_id) {
+  if (!roster_id) {
+    const err = new Error('roster_id es requerido');
+    err.status = 400;
+    throw err;
+  }
+  return lideresModel.estadisticasPorJugador(roster_id);
+}
+
+module.exports = { lideresBateo, lideresPitcheo, estadisticasPorEquipo, estadisticasPorJugador };

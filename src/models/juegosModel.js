@@ -11,15 +11,17 @@ async function listar({ temporada_categoria_id, equipo_inscrito_id, estado }) {
   const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
 
   const [rows] = await pool.execute(
-    `SELECT j.*, el.id AS local_equipo_inscrito_id, elq.nombre AS equipo_local,
-            ev.id AS visitante_equipo_inscrito_id, evq.nombre AS equipo_visitante,
-            es.nombre AS estadio
+    `SELECT j.*, el.id AS local_equipo_inscrito_id, elq.nombre AS equipo_local, el.grupo AS grupo_local, elq.logo_url AS logo_local,
+            ev.id AS visitante_equipo_inscrito_id, evq.nombre AS equipo_visitante, ev.grupo AS grupo_visitante, evq.logo_url AS logo_visitante,
+            es.nombre AS estadio, egq.nombre AS equipo_ganador
      FROM juegos j
      JOIN equipos_inscritos el ON el.id = j.equipo_local_id
      JOIN equipos elq ON elq.id = el.equipo_id
      JOIN equipos_inscritos ev ON ev.id = j.equipo_visitante_id
      JOIN equipos evq ON evq.id = ev.equipo_id
      LEFT JOIN estadios es ON es.id = j.estadio_id
+     LEFT JOIN equipos_inscritos eg ON eg.id = j.equipo_ganador_id
+     LEFT JOIN equipos egq ON egq.id = eg.equipo_id
      ${where}
      ORDER BY j.fecha DESC, j.hora DESC`,
     valores
@@ -60,6 +62,7 @@ async function actualizar(id, datos) {
     'fecha', 'hora', 'estadio_id', 'estado', 'carreras_local', 'carreras_visitante',
     'hits_local', 'hits_visitante', 'errores_local', 'errores_visitante',
     'arbitros', 'anotador_oficial', 'mvp_roster_id', 'tiempo_juego', 'observacion',
+    'equipo_ganador_id',
   ];
   const sets = [];
   const valores = [];

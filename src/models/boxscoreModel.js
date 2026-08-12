@@ -6,7 +6,10 @@ const CAMPOS_BATEO = [
 ];
 
 const CAMPOS_PITCHEO = [
-  'decision', 'vb_enfrentados', 'hp', 'h2', 'h3', 'hr', 'il', 'tl', 'cp', 'cl',
+  // g/p/s/e son 0 o 1 (marca si el lanzador se llevó esa decisión en el
+  // juego). "e" queda sin confirmar su significado exacto — ver el SQL
+  // de migración para el detalle.
+  'g', 'p', 's', 'e', 'vb_enfrentados', 'hp', 'h2', 'h3', 'hr', 'il', 'tl', 'cp', 'cl',
   'so', 'bb', 'bi', 'sf', 'gp', 'wp', 'bk',
 ];
 
@@ -39,7 +42,7 @@ async function obtenerPitcheoPorJuego(juego_id) {
 // linea = { roster_id, ...cualquiera de CAMPOS_BATEO }
 function armarUpsert(tabla, campos, juego_id, linea) {
   const columnas = ['juego_id', 'roster_id', ...campos];
-  const valores = [juego_id, linea.roster_id, ...campos.map((c) => linea[c] ?? (c === 'posicion' || c === 'decision' ? null : 0))];
+  const valores = [juego_id, linea.roster_id, ...campos.map((c) => linea[c] ?? (c === 'posicion' ? null : 0))];
   const placeholders = columnas.map(() => '?').join(', ');
   const actualizaciones = campos.map((c) => `${c} = VALUES(${c})`).join(', ');
 
