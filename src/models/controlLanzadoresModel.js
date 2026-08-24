@@ -1,35 +1,38 @@
 const pool = require('../config/db');
 
-async function listarPorRoster(roster_id) {
+async function listarPorTemporada(temporada_categoria_id) {
   const [rows] = await pool.execute(
-    `SELECT cl.*, j.nombres, j.apellidos
-     FROM control_lanzadores cl
-     JOIN roster r ON r.id = cl.roster_id
-     JOIN jugadores j ON j.id = r.jugador_id
-     WHERE cl.roster_id = ?
-     ORDER BY cl.fecha DESC`,
-    [roster_id]
+    `SELECT * FROM vw_control_lanzadores
+     WHERE temporada_categoria_id = ?
+     ORDER BY puede_lanzar_hoy ASC, dias_desde_juego ASC`,
+    [temporada_categoria_id]
   );
   return rows;
 }
 
+async function registrar({ roster_id, juego_id, fecha, envios, innings_l, observacion }) {
+  const [res] = await pool.execute(
+    `INSERT INTO control_lanzadores (roster_id, juego_id, fecha, envios, innings_l, observacion)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       fecha = VALUES(fecha), envios = VALUES(envios),
+       innings_l = VALUES(innings_l), observacion = VALUES(observacion)`,
+    [roster_id, juego_id, fecha, envios, innings_l || 0, observacion || null]
+  );
+  return obtenerPorId(res.insertId || roster_id);
+}
+
 async function obtenerPorId(id) {
-  const [rows] = await pool.execute('SELECT * FROM control_lanzadores WHERE id = ?', [id]);
+  const [rows] = await pool.execute(
+    'SELECT * FROM control_lanzadores WHERE id = ?', [id]
+  );
   return rows[0] || null;
 }
 
-async function crear({ roster_id, fecha, innings_lanzados, condicion }) {
-  const [result] = await pool.execute(
-    `INSERT INTO control_lanzadores (roster_id, fecha, innings_lanzados, condicion)
-     VALUES (?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE innings_lanzados = VALUES(innings_lanzados), condicion = VALUES(condicion)`,
-    [roster_id, fecha, innings_lanzados, condicion]
-  );
-  // con ON DUPLICATE KEY UPDATE, insertId puede no venir si fue un update;
-  // buscamos por roster_id+fecha para devolver el registro correcto en ambos casos.
+async function obtenerPorRosterJuego(roster_id, juego_id) {
   const [rows] = await pool.execute(
-    'SELECT * FROM control_lanzadores WHERE roster_id = ? AND fecha = ?',
-    [roster_id, fecha]
+    'SELECT * FROM control_lanzadores WHERE roster_id = ? AND juego_id = ?',
+    [roster_id, juego_id]
   );
   return rows[0] || null;
 }
@@ -38,17 +41,25 @@ async function eliminar(id) {
   await pool.execute('DELETE FROM control_lanzadores WHERE id = ?', [id]);
 }
 
-// Suma de innings lanzados en los últimos N días — referencia para que el
-// administrador decida el descanso (el reglamento exacto queda pendiente
-// de confirmar).
-async function resumenUltimosDias(roster_id, dias) {
+async function listarReglas() {
   const [rows] = await pool.execute(
-    `SELECT COALESCE(SUM(innings_lanzados), 0) AS innings_acumulados, COUNT(*) AS apariciones
-     FROM control_lanzadores
-     WHERE roster_id = ? AND fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY)`,
-    [roster_id, dias]
+    'SELECT * FROM control_lanzadores_reglas ORDER BY envios_min'
   );
+  return rows;
+}
+
+async function actualizarRegla(id, { envios_min, envios_max, dias_descanso, descripcion }) {
+  await pool.execute(
+    `UPDATE control_lanzadores_reglas
+     SET envios_min = ?, envios_max = ?, dias_descanso = ?, descripcion = ?
+     WHERE id = ?`,
+    [envios_min, envios_max, dias_descanso, descripcion || null, id]
+  );
+  const [rows] = await pool.execute('SELECT * FROM control_lanzadores_reglas WHERE id = ?', [id]);
   return rows[0];
 }
 
-module.exports = { listarPorRoster, obtenerPorId, crear, eliminar, resumenUltimosDias };
+module.exports = {
+  listarPorTemporada, registrar, obtenerPorId,
+  obtenerPorRosterJuego, eliminar, listarReglas, actualizarRegla,
+};

@@ -1,21 +1,19 @@
-const service = require('../services/controlLanzadoresService');
+const svc = require('../services/controlLanzadoresService');
 
-async function listarPorRoster(req, res, next) {
-  try { res.json(await service.listarPorRoster(req.query.roster_id)); } catch (err) { next(err); }
+async function listar(req, res, next) {
+  try { res.json(await svc.listar(req.query.temporada_categoria_id)); } catch (e) { next(e); }
 }
-
-async function crear(req, res, next) {
-  try { res.status(201).json(await service.crear(req.body)); } catch (err) { next(err); }
+async function registrar(req, res, next) {
+  try { res.status(201).json(await svc.registrar(req.body)); } catch (e) { next(e); }
 }
-
 async function eliminar(req, res, next) {
-  try { await service.eliminar(req.params.id); res.status(204).send(); } catch (err) { next(err); }
+  try { await svc.eliminar(req.params.id); res.status(204).send(); } catch (e) { next(e); }
+}
+async function listarReglas(req, res, next) {
+  try { res.json(await svc.listarReglas()); } catch (e) { next(e); }
+}
+async function actualizarRegla(req, res, next) {
+  try { res.json(await svc.actualizarRegla(req.params.id, req.body)); } catch (e) { next(e); }
 }
 
-async function resumenUltimosDias(req, res, next) {
-  try {
-    res.json(await service.resumenUltimosDias(req.query.roster_id, req.query.dias));
-  } catch (err) { next(err); }
-}
-
-module.exports = { listarPorRoster, crear, eliminar, resumenUltimosDias };
+module.exports = { listar, registrar, eliminar, listarReglas, actualizarRegla };

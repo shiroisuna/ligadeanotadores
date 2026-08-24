@@ -1,49 +1,38 @@
 const model = require('../models/controlLanzadoresModel');
 
-function noEncontrado(mensaje) {
-  const err = new Error(mensaje);
-  err.status = 404;
-  return err;
+async function listar(temporada_categoria_id) {
+  if (!temporada_categoria_id) {
+    const err = new Error('temporada_categoria_id es requerido');
+    err.status = 400;
+    throw err;
+  }
+  return model.listarPorTemporada(temporada_categoria_id);
 }
 
-async function listarPorRoster(roster_id) {
-  if (!roster_id) {
-    const err = new Error('roster_id es requerido');
+async function registrar(datos) {
+  const { roster_id, juego_id, fecha, envios } = datos;
+  if (!roster_id || !juego_id || !fecha || envios === undefined) {
+    const err = new Error('roster_id, juego_id, fecha y envios son requeridos');
     err.status = 400;
     throw err;
   }
-  return model.listarPorRoster(roster_id);
-}
-
-async function crear(datos) {
-  const { roster_id, fecha, innings_lanzados, condicion } = datos;
-  if (!roster_id || !fecha || innings_lanzados === undefined || !condicion) {
-    const err = new Error('roster_id, fecha, innings_lanzados y condicion son requeridos');
-    err.status = 400;
-    throw err;
-  }
-  if (!['completa', 'descansa'].includes(condicion)) {
-    const err = new Error("condicion debe ser 'completa' o 'descansa'");
-    err.status = 400;
-    throw err;
-  }
-  return model.crear(datos);
+  return model.registrar(datos);
 }
 
 async function eliminar(id) {
-  const registro = await model.obtenerPorId(id);
-  if (!registro) throw noEncontrado('Registro no encontrado');
+  const reg = await model.obtenerPorId(id);
+  if (!reg) {
+    const err = new Error('Registro no encontrado');
+    err.status = 404;
+    throw err;
+  }
   return model.eliminar(id);
 }
 
-async function resumenUltimosDias(roster_id, dias) {
-  if (!roster_id) {
-    const err = new Error('roster_id es requerido');
-    err.status = 400;
-    throw err;
-  }
-  const diasNum = Number.parseInt(dias, 10);
-  return model.resumenUltimosDias(roster_id, Number.isFinite(diasNum) && diasNum > 0 ? diasNum : 7);
+async function listarReglas() { return model.listarReglas(); }
+
+async function actualizarRegla(id, datos) {
+  return model.actualizarRegla(id, datos);
 }
 
-module.exports = { listarPorRoster, crear, eliminar, resumenUltimosDias };
+module.exports = { listar, registrar, eliminar, listarReglas, actualizarRegla };

@@ -5,6 +5,7 @@ const { crearUploader } = require('../middlewares/upload');
 
 const uploadLogo = crearUploader('logos');
 const uploadFoto = crearUploader('jugadores');
+const uploadGaleria = crearUploader('galeria');
 
 function responderUrl(subcarpeta) {
   return (req, res, next) => {
@@ -32,6 +33,13 @@ router.post(
   requireAuth, requireRole('administrador'),
   uploadFoto.single('imagen'),
   responderUrl('jugadores')
+);
+
+router.post(
+  '/galeria',
+  requireAuth, requireRole('administrador'),
+  uploadGaleria.single('imagen'),
+  responderUrl('galeria')
 );
 
 module.exports = router;
