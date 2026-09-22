@@ -8,6 +8,9 @@ const controller = require('../controllers/lideresController');
 // GET /api/lideres/pitcheo?temporada_categoria_id=1&stat=efectividad&limit=5
 router.get('/bateo', controller.bateo);
 router.get('/pitcheo', controller.pitcheo);
+// Líderes defensivos por posición (con umbral de innings jugados)
+// GET /api/lideres/defensiva?temporada_categoria_id=1&limit=10
+router.get('/defensiva', controller.defensiva);
 // Perfil completo (todas las columnas) de un jugador
 router.get('/jugador/:roster_id', controller.porJugador);
 // Estadística completa de todo el roster de un equipo, en esta categoría

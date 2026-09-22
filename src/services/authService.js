@@ -22,6 +22,8 @@ async function login(email, password) {
     email: usuario.email,
     rol: usuario.rol,
     jugador_id: usuario.jugador_id,
+    // Solo aplica a rol 'anotador' — el equipo al que queda atado.
+    equipo_inscrito_id: usuario.equipo_inscrito_id,
   };
 
   const token = jwt.sign(payload, process.env.JWT_SECRET, {

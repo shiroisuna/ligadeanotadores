@@ -8,20 +8,35 @@ async function obtener(req, res, next) {
 
 async function guardarBateo(req, res, next) {
   try {
-    res.json(await estadisticasService.guardarBateo(req.params.juego_id, req.body.lineas));
+    res.json(await estadisticasService.guardarBateo(req.params.juego_id, req.body.lineas, req.usuario));
   } catch (err) { next(err); }
 }
 
 async function guardarPitcheo(req, res, next) {
   try {
-    res.json(await estadisticasService.guardarPitcheo(req.params.juego_id, req.body.lineas));
+    res.json(await estadisticasService.guardarPitcheo(req.params.juego_id, req.body.lineas, req.usuario));
   } catch (err) { next(err); }
 }
 
 async function guardarFildeo(req, res, next) {
   try {
-    res.json(await estadisticasService.guardarFildeo(req.params.juego_id, req.body.lineas));
+    res.json(await estadisticasService.guardarFildeo(req.params.juego_id, req.body.lineas, req.usuario));
   } catch (err) { next(err); }
 }
 
-module.exports = { obtener, guardarBateo, guardarPitcheo, guardarFildeo };
+async function obtenerColectivo(req, res, next) {
+  try {
+    res.json(await estadisticasService.obtenerColectivo(req.params.equipo_inscrito_id));
+  } catch (err) { next(err); }
+}
+
+async function obtenerColectivoPorCategoria(req, res, next) {
+  try {
+    res.json(await estadisticasService.obtenerColectivoPorCategoria(req.query.temporada_categoria_id));
+  } catch (err) { next(err); }
+}
+
+module.exports = {
+  obtener, guardarBateo, guardarPitcheo, guardarFildeo,
+  obtenerColectivo, obtenerColectivoPorCategoria,
+};

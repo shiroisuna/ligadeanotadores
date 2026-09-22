@@ -13,7 +13,7 @@ async function listar({ temporada_categoria_id, equipo_inscrito_id, estado }) {
   const [rows] = await pool.execute(
     `SELECT j.*, el.id AS local_equipo_inscrito_id, elq.nombre AS equipo_local, el.grupo AS grupo_local, elq.logo_url AS logo_local,
             ev.id AS visitante_equipo_inscrito_id, evq.nombre AS equipo_visitante, ev.grupo AS grupo_visitante, evq.logo_url AS logo_visitante,
-            es.nombre AS estadio, egq.nombre AS equipo_ganador
+            es.nombre AS estadio, es.direccion AS estadio_direccion, egq.nombre AS equipo_ganador
      FROM juegos j
      JOIN equipos_inscritos el ON el.id = j.equipo_local_id
      JOIN equipos elq ON elq.id = el.equipo_id
@@ -31,7 +31,10 @@ async function listar({ temporada_categoria_id, equipo_inscrito_id, estado }) {
 
 async function obtenerPorId(id) {
   const [rows] = await pool.execute(
-    `SELECT j.*, elq.nombre AS equipo_local, evq.nombre AS equipo_visitante, es.nombre AS estadio
+    `SELECT j.*, el.id AS local_equipo_inscrito_id, ev.id AS visitante_equipo_inscrito_id,
+            elq.nombre AS equipo_local, elq.logo_url AS logo_local,
+            evq.nombre AS equipo_visitante, evq.logo_url AS logo_visitante,
+            es.nombre AS estadio, es.direccion AS estadio_direccion
      FROM juegos j
      JOIN equipos_inscritos el ON el.id = j.equipo_local_id
      JOIN equipos elq ON elq.id = el.equipo_id
@@ -59,7 +62,9 @@ async function crear(datos) {
 
 async function actualizar(id, datos) {
   const campos = [
-    'fecha', 'hora', 'estadio_id', 'estado', 'carreras_local', 'carreras_visitante',
+    'fecha', 'fecha_fin', 'hora', 'hora_inicio', 'hora_final', 'duracion_minutos',
+    'estadio_id', 'estado', 'ronda', 'entidad',
+    'carreras_local', 'carreras_visitante',
     'hits_local', 'hits_visitante', 'errores_local', 'errores_visitante',
     'arbitros', 'anotador_oficial', 'mvp_roster_id', 'tiempo_juego', 'observacion',
     'equipo_ganador_id',
@@ -93,8 +98,6 @@ async function listarEntradas(juego_id) {
   return rows;
 }
 
-// Recibe un arreglo de { equipo_inscrito_id, numero_entrada, carreras } y
-// hace upsert de cada una (gracias al UNIQUE KEY en juego_id+equipo+entrada).
 async function guardarEntradas(juego_id, entradas) {
   const conn = await pool.getConnection();
   try {

@@ -9,11 +9,15 @@ router.get('/', controller.listar);
 router.get('/:id', controller.obtener);
 router.get('/:id/entradas', controller.listarEntradas);
 
-// Programar / editar resultado: solo administrador
+// Programar / eliminar un juego: exclusivo del administrador —
+// el anotador NUNCA puede crear juegos.
 router.post('/', requireAuth, requireRole('administrador'), controller.crear);
-router.put('/:id', requireAuth, requireRole('administrador'), controller.actualizar);
 router.delete('/:id', requireAuth, requireRole('administrador'), controller.eliminar);
-// body: { entradas: [{ equipo_inscrito_id, numero_entrada, carreras }, ...] }
-router.put('/:id/entradas', requireAuth, requireRole('administrador'), controller.guardarEntradas);
+
+// Cargar resultado y entradas: administrador o anotador — el service
+// valida que el anotador solo pueda tocar juegos de su propio equipo.
+const canWriteResultado = [requireAuth, requireRole('administrador', 'anotador')];
+router.put('/:id', ...canWriteResultado, controller.actualizar);
+router.put('/:id/entradas', ...canWriteResultado, controller.guardarEntradas);
 
 module.exports = router;

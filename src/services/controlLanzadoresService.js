@@ -10,9 +10,11 @@ async function listar(temporada_categoria_id) {
 }
 
 async function registrar(datos) {
-  const { roster_id, juego_id, fecha, envios } = datos;
-  if (!roster_id || !juego_id || !fecha || envios === undefined) {
-    const err = new Error('roster_id, juego_id, fecha y envios son requeridos');
+  const { roster_id, fecha, envios } = datos;
+  // juego_id es opcional — el formulario permite "Sin vincular" y el
+  // modelo ya lo maneja como juego_id || null en el INSERT.
+  if (!roster_id || !fecha || envios === undefined) {
+    const err = new Error('roster_id, fecha y envios son requeridos');
     err.status = 400;
     throw err;
   }
@@ -28,6 +30,7 @@ async function eliminar(id) {
   }
   return model.eliminar(id);
 }
+
 
 async function listarReglas() { return model.listarReglas(); }
 

@@ -1,4 +1,5 @@
 const lideresModel = require('../models/lideresModel');
+const estFildeoLideresModel = require('../models/estFildeoLideresModel');
 
 function validarStatBateo(stat) {
   if (!lideresModel.STATS_BATEO[stat]) {
@@ -42,11 +43,12 @@ async function estadisticasPorEquipo(temporada_categoria_id, equipo_inscrito_id)
     err.status = 400;
     throw err;
   }
-  const [bateo, pitcheo] = await Promise.all([
+  const [bateo, pitcheo, fildeo] = await Promise.all([
     lideresModel.estadisticasBateoPorEquipo(temporada_categoria_id, equipo_inscrito_id),
     lideresModel.estadisticasPitcheoPorEquipo(temporada_categoria_id, equipo_inscrito_id),
+    lideresModel.estadisticasFildeoPorEquipo(equipo_inscrito_id),
   ]);
-  return { bateo, pitcheo };
+  return { bateo, pitcheo, fildeo };
 }
 
 async function estadisticasPorJugador(roster_id) {
@@ -58,4 +60,15 @@ async function estadisticasPorJugador(roster_id) {
   return lideresModel.estadisticasPorJugador(roster_id);
 }
 
-module.exports = { lideresBateo, lideresPitcheo, estadisticasPorEquipo, estadisticasPorJugador };
+async function lideresDefensiva({ temporada_categoria_id, limit }) {
+  validarTemporadaCategoria(temporada_categoria_id);
+  return estFildeoLideresModel.lideresDefensiva(temporada_categoria_id, limiteSeguroDefensiva(limit));
+}
+
+function limiteSeguroDefensiva(limit) {
+  const n = Number.parseInt(limit, 10);
+  if (!Number.isFinite(n) || n <= 0) return 10;
+  return Math.min(n, 50);
+}
+
+module.exports = { lideresBateo, lideresPitcheo, estadisticasPorEquipo, estadisticasPorJugador, lideresDefensiva };

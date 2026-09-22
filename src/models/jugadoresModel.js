@@ -1,38 +1,32 @@
 const pool = require('../config/db');
 
-// ---- jugadores (catálogo general de personas) ----
-
 async function listar() {
-  // Sin email/telefono aquí a propósito: este listado alimenta selects
-  // públicos (catálogo para inscribir jugadores, etc.) — el contacto solo
-  // sale por rutas protegidas (ver obtenerPerfilContactoPorRoster).
-  // foto_url sí se incluye: no es un dato de contacto sensible.
   const [rows] = await pool.query(
-    'SELECT id, nombres, apellidos, fecha_nacimiento, foto_url FROM jugadores ORDER BY apellidos, nombres'
+    'SELECT id, nombres, apellidos, fecha_nacimiento, foto_url, lado FROM jugadores ORDER BY apellidos, nombres'
   );
   return rows;
 }
 
 async function obtenerPorId(id) {
   const [rows] = await pool.execute(
-    'SELECT id, nombres, apellidos, fecha_nacimiento, email, telefono, foto_url FROM jugadores WHERE id = ?',
+    'SELECT id, nombres, apellidos, fecha_nacimiento, email, telefono, foto_url, lado FROM jugadores WHERE id = ?',
     [id]
   );
   return rows[0] || null;
 }
 
-async function crear({ nombres, apellidos, fecha_nacimiento, email, telefono, foto_url }) {
+async function crear({ nombres, apellidos, fecha_nacimiento, email, telefono, foto_url, lado }) {
   const [result] = await pool.execute(
-    'INSERT INTO jugadores (nombres, apellidos, fecha_nacimiento, email, telefono, foto_url) VALUES (?, ?, ?, ?, ?, ?)',
-    [nombres, apellidos, fecha_nacimiento || null, email || null, telefono || null, foto_url || null]
+    'INSERT INTO jugadores (nombres, apellidos, fecha_nacimiento, email, telefono, foto_url, lado) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [nombres, apellidos, fecha_nacimiento || null, email || null, telefono || null, foto_url || null, lado || null]
   );
   return obtenerPorId(result.insertId);
 }
 
-async function actualizar(id, { nombres, apellidos, fecha_nacimiento, email, telefono, foto_url }) {
+async function actualizar(id, { nombres, apellidos, fecha_nacimiento, email, telefono, foto_url, lado }) {
   await pool.execute(
-    'UPDATE jugadores SET nombres = ?, apellidos = ?, fecha_nacimiento = ?, email = ?, telefono = ?, foto_url = ? WHERE id = ?',
-    [nombres, apellidos, fecha_nacimiento || null, email || null, telefono || null, foto_url || null, id]
+    'UPDATE jugadores SET nombres=?, apellidos=?, fecha_nacimiento=?, email=?, telefono=?, foto_url=?, lado=? WHERE id=?',
+    [nombres, apellidos, fecha_nacimiento || null, email || null, telefono || null, foto_url || null, lado || null, id]
   );
   return obtenerPorId(id);
 }
@@ -41,12 +35,10 @@ async function eliminar(id) {
   await pool.execute('DELETE FROM jugadores WHERE id = ?', [id]);
 }
 
-// ---- roster (jugador dentro de un equipo_inscrito, con número y posición) ----
-
 async function listarRosterPorEquipo(equipo_inscrito_id) {
   const [rows] = await pool.execute(
-    `SELECT r.id, r.numero_camiseta, r.posicion_principal, r.activo,
-            j.id AS jugador_id, j.nombres, j.apellidos
+    `SELECT r.id, r.numero_camiseta, r.posicion_principal,
+            j.nombres, j.apellidos, j.foto_url, j.lado
      FROM roster r
      JOIN jugadores j ON j.id = r.jugador_id
      WHERE r.equipo_inscrito_id = ?
@@ -56,15 +48,12 @@ async function listarRosterPorEquipo(equipo_inscrito_id) {
   return rows;
 }
 
-async function obtenerRosterPorId(id) {
+async function listarPosicionesRoster(roster_id) {
   const [rows] = await pool.execute(
-    `SELECT r.*, j.nombres, j.apellidos
-     FROM roster r
-     JOIN jugadores j ON j.id = r.jugador_id
-     WHERE r.id = ?`,
-    [id]
+    'SELECT * FROM roster_posiciones WHERE roster_id = ? ORDER BY orden',
+    [roster_id]
   );
-  return rows[0] || null;
+  return rows;
 }
 
 async function agregarARoster({ jugador_id, equipo_inscrito_id, numero_camiseta, posicion_principal }) {
@@ -74,6 +63,11 @@ async function agregarARoster({ jugador_id, equipo_inscrito_id, numero_camiseta,
     [jugador_id, equipo_inscrito_id, numero_camiseta || null, posicion_principal || null]
   );
   return obtenerRosterPorId(result.insertId);
+}
+
+async function obtenerRosterPorId(id) {
+  const [rows] = await pool.execute('SELECT * FROM roster WHERE id = ?', [id]);
+  return rows[0] || null;
 }
 
 async function actualizarRoster(id, { numero_camiseta, posicion_principal, activo }) {
@@ -88,8 +82,17 @@ async function eliminarDeRoster(id) {
   await pool.execute('DELETE FROM roster WHERE id = ?', [id]);
 }
 
-// Todos los roster (equipo+temporada+categoría) en los que ha estado un
-// jugador — usado para que el propio jugador vea "sus tarjetas".
+async function guardarPosicionesRoster(roster_id, posiciones) {
+  await pool.execute('DELETE FROM roster_posiciones WHERE roster_id = ?', [roster_id]);
+  for (let i = 0; i < posiciones.length; i++) {
+    await pool.execute(
+      'INSERT INTO roster_posiciones (roster_id, posicion, orden) VALUES (?, ?, ?)',
+      [roster_id, posiciones[i], i + 1]
+    );
+  }
+  return listarPosicionesRoster(roster_id);
+}
+
 async function listarRosterPorJugador(jugador_id) {
   const [rows] = await pool.execute(
     `SELECT r.id AS roster_id, r.numero_camiseta, r.posicion_principal,
@@ -109,28 +112,40 @@ async function listarRosterPorJugador(jugador_id) {
   return rows;
 }
 
-module.exports = {
-  listar, obtenerPorId, crear, actualizar, eliminar,
-  listarRosterPorEquipo, obtenerRosterPorId, agregarARoster, actualizarRoster, eliminarDeRoster,
-  listarRosterPorJugador,
-};
-
-// Perfil con datos de contacto (email/teléfono/fecha de nacimiento) para
-// un roster específico. Nunca se expone en un endpoint público — solo a
-// través de /jugadores/perfil/:roster_id, protegido por requireAuth y
-// verificado en el service (admin, o el propio jugador dueño del roster).
 async function obtenerPerfilContactoPorRoster(roster_id) {
   const [rows] = await pool.execute(
-    `SELECT r.id AS roster_id, r.jugador_id, r.numero_camiseta, r.posicion_principal,
-            j.nombres, j.apellidos, j.fecha_nacimiento, j.email, j.telefono,
-            eq.nombre AS equipo
+    `SELECT j.id, j.nombres, j.apellidos, j.fecha_nacimiento,
+            j.email, j.telefono, j.foto_url, j.lado,
+            r.numero_camiseta, r.posicion_principal
      FROM roster r
      JOIN jugadores j ON j.id = r.jugador_id
-     JOIN equipos_inscritos ei ON ei.id = r.equipo_inscrito_id
-     JOIN equipos eq ON eq.id = ei.equipo_id
      WHERE r.id = ?`,
     [roster_id]
   );
   return rows[0] || null;
 }
-module.exports.obtenerPerfilContactoPorRoster = obtenerPerfilContactoPorRoster;
+
+// ── Helper para validar permisos de anotador ─────────────────────────
+// Dado un arreglo de roster_id, devuelve un mapa { roster_id: equipo_inscrito_id }.
+// Se usa para verificar que un anotador solo cargue estadísticas de
+// jugadores de su propio equipo.
+async function obtenerEquiposDeRoster(roster_ids) {
+  if (!roster_ids || roster_ids.length === 0) return {};
+  const placeholders = roster_ids.map(() => '?').join(',');
+  const [rows] = await pool.execute(
+    `SELECT id, equipo_inscrito_id FROM roster WHERE id IN (${placeholders})`,
+    roster_ids
+  );
+  const mapa = {};
+  rows.forEach((r) => { mapa[r.id] = r.equipo_inscrito_id; });
+  return mapa;
+}
+
+module.exports = {
+  listar, obtenerPorId, crear, actualizar, eliminar,
+  listarRosterPorEquipo,
+  listarPosicionesRoster, guardarPosicionesRoster,
+  listarRosterPorJugador, obtenerPerfilContactoPorRoster,
+  agregarARoster, actualizarRoster, eliminarDeRoster,
+  obtenerEquiposDeRoster,
+};

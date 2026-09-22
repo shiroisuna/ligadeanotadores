@@ -19,6 +19,12 @@ const fotosRoutes            = require('./routes/fotosRoutes');
 const contenidoRoutes        = require('./routes/contenidoRoutes');
 const pagosRoutes            = require('./routes/pagosRoutes');
 const uploadsRoutes          = require('./routes/uploadsRoutes');
+const torneosRoutes = require('./routes/torneosRoutes');
+const aprobacionesRoutes = require('./routes/aprobacionesRoutes');
+const incidenciasRoutes = require('./routes/incidenciasRoutes');
+const usuariosRoutes = require('./routes/usuariosRoutes');
+const estadiosRoutes = require('./routes/estadiosRoutes');
+
 
 const app = express();
 app.use(cors());
@@ -45,6 +51,12 @@ app.use('/api/fotos',             fotosRoutes);
 app.use('/api/contenido',         contenidoRoutes);
 app.use('/api/pagos',             pagosRoutes);
 app.use('/api/uploads',           uploadsRoutes);
+app.use('/api/torneos',           torneosRoutes);
+app.use('/api/aprobaciones',      aprobacionesRoutes);
+app.use('/api/incidencias',       incidenciasRoutes);
+app.use('/api/usuarios',          usuariosRoutes);
+app.use('/api/estadios', estadiosRoutes);
+
 
 app.use(errorHandler);
 module.exports = app;

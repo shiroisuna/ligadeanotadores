@@ -16,7 +16,7 @@ async function crear(req, res, next) {
 }
 
 async function actualizar(req, res, next) {
-  try { res.json(await juegosService.actualizar(req.params.id, req.body)); } catch (err) { next(err); }
+  try { res.json(await juegosService.actualizar(req.params.id, req.body, req.usuario)); } catch (err) { next(err); }
 }
 
 async function eliminar(req, res, next) {
@@ -31,7 +31,7 @@ async function listarEntradas(req, res, next) {
 
 async function guardarEntradas(req, res, next) {
   try {
-    res.json(await juegosService.guardarEntradas(req.params.id, req.body.entradas));
+    res.json(await juegosService.guardarEntradas(req.params.id, req.body.entradas, req.usuario));
   } catch (err) { next(err); }
 }
 

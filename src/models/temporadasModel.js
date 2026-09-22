@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-// ---- temporadas ----
+// ---- Temporadas ----
 
 async function listar() {
   const [rows] = await pool.query('SELECT * FROM temporadas ORDER BY fecha_inicio DESC');
@@ -12,18 +12,18 @@ async function obtenerPorId(id) {
   return rows[0] || null;
 }
 
-async function crear({ nombre, fecha_inicio, fecha_fin, activa }) {
-  const [result] = await pool.execute(
-    'INSERT INTO temporadas (nombre, fecha_inicio, fecha_fin, activa) VALUES (?, ?, ?, ?)',
-    [nombre, fecha_inicio || null, fecha_fin || null, activa === undefined ? true : !!activa]
+async function crear({ nombre, fecha_inicio, activa }) {
+  const [res] = await pool.execute(
+    'INSERT INTO temporadas (nombre, fecha_inicio, activa) VALUES (?, ?, ?)',
+    [nombre, fecha_inicio || null, activa ? 1 : 0]
   );
-  return obtenerPorId(result.insertId);
+  return obtenerPorId(res.insertId);
 }
 
-async function actualizar(id, { nombre, fecha_inicio, fecha_fin, activa }) {
+async function actualizar(id, { nombre, fecha_inicio, activa }) {
   await pool.execute(
-    'UPDATE temporadas SET nombre = ?, fecha_inicio = ?, fecha_fin = ?, activa = ? WHERE id = ?',
-    [nombre, fecha_inicio || null, fecha_fin || null, !!activa, id]
+    'UPDATE temporadas SET nombre=?, fecha_inicio=?, activa=? WHERE id=?',
+    [nombre, fecha_inicio || null, activa ? 1 : 0, id]
   );
   return obtenerPorId(id);
 }
@@ -32,18 +32,19 @@ async function eliminar(id) {
   await pool.execute('DELETE FROM temporadas WHERE id = ?', [id]);
 }
 
-// ---- temporada_categoria (cruce: qué categorías corren en qué temporada, y su copa) ----
+// ---- temporada_categoria ----
+// Nombres exactos que temporadasService.js espera
 
 async function listarCategoriasDeTemporada(temporada_id) {
   const [rows] = await pool.execute(
-    `SELECT tc.id, tc.copa_nombre, tc.posiciones_al_fecha, tc.recopilador,
-            c.id AS categoria_id, c.nombre AS categoria_nombre, c.lleva_pitcheo, c.nivel_standings,
-            d.nombre AS disciplina
+    `SELECT tc.id, tc.copa_nombre, tc.temporada_id, tc.categoria_id,
+            c.nombre AS categoria_nombre, c.lleva_pitcheo, c.nivel_standings,
+            c.num_innings, d.nombre AS disciplina
      FROM temporada_categoria tc
      JOIN categorias c ON c.id = tc.categoria_id
      JOIN disciplinas d ON d.id = c.disciplina_id
      WHERE tc.temporada_id = ?
-     ORDER BY c.orden_visual, c.nombre`,
+     ORDER BY d.nombre, c.nombre`,
     [temporada_id]
   );
   return rows;
@@ -61,30 +62,29 @@ async function obtenerCruzePorId(id) {
   return rows[0] || null;
 }
 
-async function crearCruce({ temporada_id, categoria_id, copa_nombre, posiciones_al_fecha, recopilador }) {
-  const [result] = await pool.execute(
-    `INSERT INTO temporada_categoria (temporada_id, categoria_id, copa_nombre, posiciones_al_fecha, recopilador)
-     VALUES (?, ?, ?, ?, ?)`,
-    [temporada_id, categoria_id, copa_nombre || null, posiciones_al_fecha || null, recopilador || null]
+async function crearCruce({ temporada_id, categoria_id, copa_nombre }) {
+  const [res] = await pool.execute(
+    `INSERT INTO temporada_categoria (temporada_id, categoria_id, copa_nombre)
+     VALUES (?, ?, ?)`,
+    [temporada_id, categoria_id, copa_nombre || null]
   );
-  return obtenerCruzePorId(result.insertId);
+  return obtenerCruzePorId(res.insertId);
 }
 
-async function actualizarCruce(id, { copa_nombre, posiciones_al_fecha, recopilador }) {
+async function actualizarCruce(id, { copa_nombre }) {
   await pool.execute(
-    `UPDATE temporada_categoria
-     SET copa_nombre = ?, posiciones_al_fecha = ?, recopilador = ?
-     WHERE id = ?`,
-    [copa_nombre || null, posiciones_al_fecha || null, recopilador || null, id]
+    'UPDATE temporada_categoria SET copa_nombre=? WHERE id=?',
+    [copa_nombre || null, id]
   );
   return obtenerCruzePorId(id);
 }
 
 async function eliminarCruce(id) {
-  await pool.execute('DELETE FROM temporada_categoria WHERE id = ?', [id]);
+  await pool.execute('DELETE FROM temporada_categoria WHERE id=?', [id]);
 }
 
 module.exports = {
   listar, obtenerPorId, crear, actualizar, eliminar,
-  listarCategoriasDeTemporada, obtenerCruzePorId, crearCruce, actualizarCruce, eliminarCruce,
+  listarCategoriasDeTemporada, obtenerCruzePorId,
+  crearCruce, actualizarCruce, eliminarCruce,
 };
