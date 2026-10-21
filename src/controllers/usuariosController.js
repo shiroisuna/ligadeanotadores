@@ -1,27 +1,19 @@
-const usuariosService = require('../services/usuariosService');
+const svc = require('../services/usuariosService');
 
-async function listarAnotadores(req, res, next) {
-  try { res.json(await usuariosService.listarAnotadores()); } catch (err) { next(err); }
-}
+const envolver = (fn) => async (req, res, next) => { try { await fn(req, res); } catch (err) { next(err); } };
 
-async function crearAnotador(req, res, next) {
-  try { res.status(201).json(await usuariosService.crearAnotador(req.body)); } catch (err) { next(err); }
-}
+module.exports = {
+  listarTodos:   envolver(async (req, res) => res.json(await svc.listarTodos())),
+  crear:         envolver(async (req, res) => res.status(201).json(await svc.crear(req.body))),
+  actualizar:    envolver(async (req, res) => res.json(await svc.actualizar(req.params.id, req.body, req.usuario))),
+  resetPassword: envolver(async (req, res) => res.json(await svc.resetPassword(req.params.id, req.body.password))),
+  desactivar:    envolver(async (req, res) => { await svc.desactivar(req.params.id, req.usuario); res.status(204).send(); }),
+  reactivar:     envolver(async (req, res) => res.json(await svc.reactivar(req.params.id))),
+  miPassword:    envolver(async (req, res) => res.json(await svc.cambiarMiPassword(req.usuario.id, req.body.password_actual, req.body.password_nueva))),
 
-async function actualizarEquipo(req, res, next) {
-  try { res.json(await usuariosService.actualizarEquipo(req.params.id, req.body.equipo_inscrito_id)); } catch (err) { next(err); }
-}
-
-async function cambiarPassword(req, res, next) {
-  try { res.json(await usuariosService.cambiarPassword(req.params.id, req.body.password)); } catch (err) { next(err); }
-}
-
-async function desactivar(req, res, next) {
-  try { await usuariosService.desactivar(req.params.id); res.status(204).send(); } catch (err) { next(err); }
-}
-
-async function reactivar(req, res, next) {
-  try { res.json(await usuariosService.reactivar(req.params.id)); } catch (err) { next(err); }
-}
-
-module.exports = { listarAnotadores, crearAnotador, actualizarEquipo, cambiarPassword, desactivar, reactivar };
+  // Compatibilidad (pantalla de Anotadores)
+  listarAnotadores: envolver(async (req, res) => res.json(await svc.listarAnotadores())),
+  crearAnotador:    envolver(async (req, res) => res.status(201).json(await svc.crearAnotador(req.body))),
+  actualizarEquipo: envolver(async (req, res) => res.json(await svc.actualizarEquipo(req.params.id, req.body.equipo_inscrito_id))),
+  cambiarPassword:  envolver(async (req, res) => res.json(await svc.resetPassword(req.params.id, req.body.password))),
+};

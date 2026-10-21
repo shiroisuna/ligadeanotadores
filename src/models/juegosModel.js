@@ -63,7 +63,7 @@ async function crear(datos) {
 async function actualizar(id, datos) {
   const campos = [
     'fecha', 'fecha_fin', 'hora', 'hora_inicio', 'hora_final', 'duracion_minutos',
-    'estadio_id', 'estado', 'ronda', 'entidad',
+    'estadio_id', 'estado', 'ronda', 'entidad_arbitros', 'entidad_anotador',
     'carreras_local', 'carreras_visitante',
     'hits_local', 'hits_visitante', 'errores_local', 'errores_visitante',
     'arbitros', 'anotador_oficial', 'mvp_roster_id', 'tiempo_juego', 'observacion',

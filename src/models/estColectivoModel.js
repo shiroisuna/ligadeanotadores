@@ -82,7 +82,7 @@ async function obtenerFildeoColectivo(equipo_inscrito_id) {
   const [rows] = await pool.execute(
     `SELECT
         SUM(ef.ij) AS ij, SUM(ef.o) AS o, SUM(ef.a) AS a, SUM(ef.e) AS e,
-        SUM(ef.tl) AS tl, SUM(ef.dp) AS dp, SUM(ef.di) AS di,
+        SUM(ef.o + ef.a + ef.e) AS tl, SUM(ef.dp) AS dp, SUM(ef.di) AS di,
         SUM(ef.pb) AS pb, SUM(ef.ir) AS ir, SUM(ef.or_) AS or_
      FROM est_fildeo ef
      JOIN roster r ON r.id = ef.roster_id
@@ -177,7 +177,7 @@ async function obtenerFildeoColectivoPorCategoria(temporada_categoria_id) {
   const [rows] = await pool.execute(
     `SELECT ei.id AS equipo_inscrito_id, eq.nombre AS equipo, eq.logo_url AS logo_url,
         SUM(ef.ij) AS ij, SUM(ef.o) AS o, SUM(ef.a) AS a, SUM(ef.e) AS e,
-        SUM(ef.tl) AS tl, SUM(ef.dp) AS dp, SUM(ef.di) AS di,
+        SUM(ef.o + ef.a + ef.e) AS tl, SUM(ef.dp) AS dp, SUM(ef.di) AS di,
         SUM(ef.pb) AS pb, SUM(ef.ir) AS ir, SUM(ef.or_) AS or_
      FROM equipos_inscritos ei
      JOIN equipos eq ON eq.id = ei.equipo_id

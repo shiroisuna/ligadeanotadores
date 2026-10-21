@@ -3,7 +3,7 @@ const pool = require('../config/db');
 const CAMPOS = [
   'g','p','s','e','i','r','c','b',
   'vb','hp','h2','h3','hr','il','cp','cl',
-  'so','bb','bi','sh','sf','gp','wp','bk','li'
+  'so','bb','bi','sh','sf','gp','wp','bk','li','tl'
 ];
 
 async function obtenerPorJuego(juego_id) {

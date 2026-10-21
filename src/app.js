@@ -24,6 +24,7 @@ const aprobacionesRoutes = require('./routes/aprobacionesRoutes');
 const incidenciasRoutes = require('./routes/incidenciasRoutes');
 const usuariosRoutes = require('./routes/usuariosRoutes');
 const estadiosRoutes = require('./routes/estadiosRoutes');
+const arbitrosRoutes = require('./routes/arbitrosRoutes');
 
 
 const app = express();
@@ -56,6 +57,7 @@ app.use('/api/aprobaciones',      aprobacionesRoutes);
 app.use('/api/incidencias',       incidenciasRoutes);
 app.use('/api/usuarios',          usuariosRoutes);
 app.use('/api/estadios', estadiosRoutes);
+app.use('/api/arbitros', arbitrosRoutes);
 
 
 app.use(errorHandler);

@@ -26,7 +26,9 @@ async function guardar(juego_id, lineas) {
     await conn.beginTransaction();
     for (const linea of lineas) {
       const cols = ['juego_id', 'roster_id', 'posicion', ...CAMPOS];
-      const vals = [juego_id, linea.roster_id, linea.posicion, ...CAMPOS.map((c) => linea[c] ?? 0)];
+      // TL (lances) = O + A + E, siempre calculado en el servidor
+      const base = { ...linea, tl: (Number(linea.o) || 0) + (Number(linea.a) || 0) + (Number(linea.e) || 0) };
+      const vals = [juego_id, linea.roster_id, linea.posicion, ...CAMPOS.map((c) => base[c] ?? 0)];
       const placeholders = cols.map(() => '?').join(', ');
       const updates = CAMPOS.map((c) => `${c} = VALUES(${c})`).join(', ');
       await conn.execute(

@@ -5,12 +5,10 @@ const CAMPOS_BATEO = [
   'h2', 'h3', 'hr', 'ba', 'ci', 'br', 'or_', 'so', 'ij', 'o', 'a', 'e', 'tl', 'dp', 'di',
 ];
 
+// Orden del box score físico: I, R, C, G, P, S, E, T.L, VB, HP, H2, H3, HR, IL, CP, CL, SO, BB, BI, SF, GP, WP, BK
 const CAMPOS_PITCHEO = [
-  // g/p/s/e son 0 o 1 (marca si el lanzador se llevó esa decisión en el
-  // juego). "e" queda sin confirmar su significado exacto — ver el SQL
-  // de migración para el detalle.
-  'g', 'p', 's', 'e', 'vb_enfrentados', 'hp', 'h2', 'h3', 'hr', 'il', 'tl', 'cp', 'cl',
-  'so', 'bb', 'bi', 'sf', 'gp', 'wp', 'bk',
+  'i', 'r', 'c', 'g', 'p', 's', 'e', 'tl', 'vb_enfrentados', 'hp', 'h2', 'h3', 'hr', 'il',
+  'cp', 'cl', 'so', 'bb', 'bi', 'sf', 'gp', 'wp', 'bk',
 ];
 
 async function obtenerBateoPorJuego(juego_id) {
@@ -39,7 +37,6 @@ async function obtenerPitcheoPorJuego(juego_id) {
   return rows;
 }
 
-// linea = { roster_id, ...cualquiera de CAMPOS_BATEO }
 function armarUpsert(tabla, campos, juego_id, linea) {
   const columnas = ['juego_id', 'roster_id', ...campos];
   const valores = [juego_id, linea.roster_id, ...campos.map((c) => linea[c] ?? (c === 'posicion' ? null : 0))];
@@ -53,8 +50,6 @@ function armarUpsert(tabla, campos, juego_id, linea) {
   };
 }
 
-// Recibe el juego_id y un arreglo de líneas de bateo; hace upsert de cada una
-// dentro de una transacción (o todas se guardan, o ninguna).
 async function guardarBateo(juego_id, lineas) {
   const conn = await pool.getConnection();
   try {
@@ -112,6 +107,7 @@ async function juegoLlevaPitcheo(juego_id) {
 }
 
 module.exports = {
+  CAMPOS_BATEO, CAMPOS_PITCHEO,
   obtenerBateoPorJuego, obtenerPitcheoPorJuego,
   guardarBateo, guardarPitcheo,
   eliminarBateo, eliminarPitcheo,
