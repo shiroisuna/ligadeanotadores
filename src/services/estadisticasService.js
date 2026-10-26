@@ -20,15 +20,13 @@ function validarLineas(lineas) {
   }
 }
 
-// Si quien guarda es un anotador (no administrador), todas las líneas
-// deben pertenecer a jugadores de SU propio equipo — nunca del rival.
-async function validarPermisoAnotador(lineas, usuario) {
+// Si quien guarda es un anotador (no administrador), solo puede corregir
+// las estadísticas del juego que tiene asignado.
+async function validarPermisoAnotador(juego_id, usuario) {
   if (!usuario || usuario.rol !== 'anotador') return; // el admin no tiene restricción
-  const rosterIds = lineas.map((l) => l.roster_id);
-  const mapa = await jugadoresModel.obtenerEquiposDeRoster(rosterIds);
-  const fueraDeEquipo = rosterIds.some((id) => mapa[id] !== usuario.equipo_inscrito_id);
-  if (fueraDeEquipo) {
-    const err = new Error('Solo puedes cargar estadísticas de jugadores de tu propio equipo');
+  const juego = await juegosModel.obtenerPorId(juego_id);
+  if (!juego || Number(juego.anotador_id) !== Number(usuario.id)) {
+    const err = new Error('Este juego no está asignado a tu usuario de anotador');
     err.status = 403;
     throw err;
   }
@@ -45,13 +43,13 @@ async function obtenerEstadisticas(juego_id) {
 
 async function guardarBateo(juego_id, lineas, usuario) {
   validarLineas(lineas);
-  await validarPermisoAnotador(lineas, usuario);
+  await validarPermisoAnotador(juego_id, usuario);
   return estBateoModel.guardar(juego_id, lineas);
 }
 
 async function guardarPitcheo(juego_id, lineas, usuario) {
   validarLineas(lineas);
-  await validarPermisoAnotador(lineas, usuario);
+  await validarPermisoAnotador(juego_id, usuario);
   const juegoData = await juegosModel.obtenerPorId(juego_id);
   if (!juegoData) {
     const err = new Error('Juego no encontrado');
@@ -63,7 +61,7 @@ async function guardarPitcheo(juego_id, lineas, usuario) {
 
 async function guardarFildeo(juego_id, lineas, usuario) {
   validarLineas(lineas);
-  await validarPermisoAnotador(lineas, usuario);
+  await validarPermisoAnotador(juego_id, usuario);
   for (const l of lineas) {
     if (!l.posicion) {
       const err = new Error('Cada línea de fildeo necesita posicion');

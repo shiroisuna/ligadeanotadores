@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const POSICIONES = ['P','C','1B','2B','3B','SS','LF','CF','RF'];
+const POSICIONES = ['P','C','1B','2B','3B','SS','LF','CF','RF','SHF'];
 const CAMPOS = ['ij','o','a','e','tl','dp','di','pb','ir','or_'];
 
 async function obtenerPorJuego(juego_id) {
@@ -24,6 +24,9 @@ async function guardar(juego_id, lineas) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    // Se reemplaza todo lo del juego: las filas quitadas en la revisión se eliminan
+    // y lo corregido queda otra vez pendiente de aprobación.
+    await conn.execute('DELETE FROM est_fildeo WHERE juego_id = ?', [juego_id]);
     for (const linea of lineas) {
       const cols = ['juego_id', 'roster_id', 'posicion', ...CAMPOS];
       // TL (lances) = O + A + E, siempre calculado en el servidor

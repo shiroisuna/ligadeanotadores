@@ -34,13 +34,16 @@ async function obtenerPorId(id) {
     `SELECT j.*, el.id AS local_equipo_inscrito_id, ev.id AS visitante_equipo_inscrito_id,
             elq.nombre AS equipo_local, elq.logo_url AS logo_local,
             evq.nombre AS equipo_visitante, evq.logo_url AS logo_visitante,
-            es.nombre AS estadio, es.direccion AS estadio_direccion
+            es.nombre AS estadio, es.direccion AS estadio_direccion,
+            c.nombre AS categoria_nombre, c.lleva_pitcheo, c.num_innings
      FROM juegos j
      JOIN equipos_inscritos el ON el.id = j.equipo_local_id
      JOIN equipos elq ON elq.id = el.equipo_id
      JOIN equipos_inscritos ev ON ev.id = j.equipo_visitante_id
      JOIN equipos evq ON evq.id = ev.equipo_id
      LEFT JOIN estadios es ON es.id = j.estadio_id
+     LEFT JOIN temporada_categoria tc ON tc.id = j.temporada_categoria_id
+     LEFT JOIN categorias c ON c.id = tc.categoria_id
      WHERE j.id = ?`,
     [id]
   );

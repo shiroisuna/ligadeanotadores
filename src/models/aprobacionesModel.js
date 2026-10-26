@@ -43,7 +43,10 @@ async function listarJuegosPendientes() {
      JOIN categorias c ON c.id = tc.categoria_id
      JOIN temporadas t ON t.id = tc.temporada_id
      LEFT JOIN usuarios u ON u.id = j.cargado_por_id
-     WHERE j.estado != 'programado' AND j.resultado_aprobado = 0
+     WHERE (j.estado != 'programado' AND j.resultado_aprobado = 0)
+        OR EXISTS (SELECT 1 FROM est_bateo   x WHERE x.juego_id = j.id AND x.aprobado = 0)
+        OR EXISTS (SELECT 1 FROM est_pitcheo x WHERE x.juego_id = j.id AND x.aprobado = 0)
+        OR EXISTS (SELECT 1 FROM est_fildeo  x WHERE x.juego_id = j.id AND x.aprobado = 0)
      ORDER BY j.fecha DESC`
   );
   return rows;

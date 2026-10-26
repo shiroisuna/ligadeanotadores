@@ -26,6 +26,9 @@ async function guardar(juego_id, lineas) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    // Se reemplaza todo lo del juego: las filas quitadas en la revisión se eliminan
+    // y lo corregido queda otra vez pendiente de aprobación.
+    await conn.execute('DELETE FROM est_pitcheo WHERE juego_id = ?', [juego_id]);
     for (const linea of lineas) {
       const cols = ['juego_id', 'roster_id', ...CAMPOS];
       const vals = [juego_id, linea.roster_id, ...CAMPOS.map((c) => linea[c] ?? 0)];

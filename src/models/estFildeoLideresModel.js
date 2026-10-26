@@ -2,7 +2,7 @@ const pool = require('../config/db');
 
 // Igual que estFildeoModel, pero sin 'P' — los lanzadores no entran en el
 // ranking defensivo por posición (tienen su propia sección de Lanzamientos).
-const POSICIONES = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF'];
+const POSICIONES = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'SHF'];
 
 const ETIQUETAS_POSICION = {
   'C':  '2.RECEPTOR',
@@ -13,7 +13,10 @@ const ETIQUETAS_POSICION = {
   'LF': '7.JARDINERO IZQUIERDO',
   'CF': '8.JARDINERO CENTRAL',
   'RF': '9.JARDINERO DERECHO',
+  'SHF': '10.SHORT FIELD',
 };
+
+const tercios = (v) => Math.round(Math.round((Number(v) || 0) * 3) / 3 * 100) / 100;
 
 function aved(o, a, e) {
   const total = (o || 0) + (a || 0) + (e || 0);
@@ -58,12 +61,14 @@ async function lideresDefensiva(temporada_categoria_id, limit = 10) {
   for (const posicion of POSICIONES) {
     const jugadores = porPosicion[posicion];
     if (!jugadores.length) {
+      if (posicion === 'SHF') continue; // Short field solo existe en softbol
       resultado.push({ posicion, etiqueta: ETIQUETAS_POSICION[posicion], media_ij: 0, umbral_ij: 0, jugadores: [] });
       continue;
     }
 
     const mediaIj = jugadores.reduce((acc, j) => acc + Number(j.ij || 0), 0) / jugadores.length;
-    const umbral = Math.round((mediaIj * (2 / 3)) * 10) / 10;
+    // En tercios de inning (se muestra como fracción: 2 1/3, 4 2/3...)
+    const umbral = tercios(mediaIj * (2 / 3));
 
     const califican = jugadores
       .filter((j) => Number(j.ij || 0) >= umbral)
@@ -86,7 +91,7 @@ async function lideresDefensiva(temporada_categoria_id, limit = 10) {
     resultado.push({
       posicion,
       etiqueta: ETIQUETAS_POSICION[posicion],
-      media_ij: Math.round(mediaIj * 10) / 10,
+      media_ij: tercios(mediaIj),
       umbral_ij: umbral,
       jugadores: califican,
     });

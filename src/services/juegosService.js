@@ -1,3 +1,4 @@
+const boxscoreModel = require('../models/boxscoreModel');
 const juegosModel = require('../models/juegosModel');
 
 function noEncontrado(mensaje) {
@@ -17,10 +18,12 @@ function sinPermiso(mensaje) {
 // las entradas de un juego ajeno.
 function validarPermisoAnotador(juego, usuario) {
   if (!usuario || usuario.rol !== 'anotador') return; // el admin no tiene restricción
+  // El anotador es externo: puede cargar el juego que tiene asignado
+  const asignado = Number(juego.anotador_id) === Number(usuario.id);
   const suEquipo = usuario.equipo_inscrito_id;
-  const esSuJuego = juego.equipo_local_id === suEquipo || juego.equipo_visitante_id === suEquipo;
-  if (!esSuJuego) {
-    throw sinPermiso('Solo puedes cargar el resultado de juegos de tu propio equipo');
+  const esSuEquipo = !!suEquipo && (juego.equipo_local_id === suEquipo || juego.equipo_visitante_id === suEquipo);
+  if (!asignado && !esSuEquipo) {
+    throw sinPermiso('Este juego no está asignado a tu usuario de anotador');
   }
 }
 
@@ -77,7 +80,10 @@ async function guardarEntradas(juego_id, entradas, usuario) {
     err.status = 400;
     throw err;
   }
-  return juegosModel.guardarEntradas(juego_id, entradas);
+  const guardadas = await juegosModel.guardarEntradas(juego_id, entradas);
+  // La línea de anotación alimenta las carreras del resultado (queda pendiente de aprobación)
+  await boxscoreModel.actualizarResultado(juego_id, usuario);
+  return guardadas;
 }
 
 module.exports = { listar, obtener, crear, actualizar, eliminar, listarEntradas, guardarEntradas };
