@@ -77,7 +77,10 @@ async function actualizar(id, datos) {
   for (const campo of campos) {
     if (datos[campo] !== undefined) {
       sets.push(`${campo} = ?`);
-      valores.push(datos[campo]);
+      //valores.push(datos[campo]);
+
+            // Un campo vacío del formulario ('') se guarda como NULL, no como texto
+      valores.push(datos[campo] === '' ? null : datos[campo]);
     }
   }
   if (!sets.length) return obtenerPorId(id);
