@@ -28,7 +28,7 @@ async function crear({ email, password, rol, equipo_inscrito_id }) {
   const [result] = await pool.execute(
     `INSERT INTO usuarios (email, password_hash, rol, equipo_inscrito_id, activo)
      VALUES (?, ?, ?, ?, 1)`,
-    [email, hash, rol, rol === 'anotador' ? equipo_inscrito_id : null]
+    [email, hash, rol, rol === 'anotador' ? (equipo_inscrito_id || null) : null]
   );
   return obtenerDetalle(result.insertId);
 }
@@ -36,7 +36,7 @@ async function crear({ email, password, rol, equipo_inscrito_id }) {
 async function actualizar(id, { email, rol, equipo_inscrito_id }) {
   await pool.execute(
     `UPDATE usuarios SET email = ?, rol = ?, equipo_inscrito_id = ? WHERE id = ?`,
-    [email, rol, rol === 'anotador' ? equipo_inscrito_id : null, id]
+    [email, rol, rol === 'anotador' ? (equipo_inscrito_id || null) : null, id]
   );
   return obtenerDetalle(id);
 }

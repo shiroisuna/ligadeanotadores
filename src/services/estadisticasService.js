@@ -4,6 +4,7 @@ const estFildeoModel  = require('../models/estFildeoModel');
 const estColectivoModel = require('../models/estColectivoModel');
 const juegosModel     = require('../models/juegosModel');
 const jugadoresModel  = require('../models/jugadoresModel');
+const { validarAnotadorJuego } = require('./permisosJuegoService');
 
 function validarLineas(lineas) {
   if (!Array.isArray(lineas) || !lineas.length) {
@@ -20,13 +21,21 @@ function validarLineas(lineas) {
   }
 }
 
-// Si quien guarda es un anotador (no administrador), solo puede corregir
-// las estadísticas del juego que tiene asignado.
-async function validarPermisoAnotador(juego_id, usuario) {
-  if (!usuario || usuario.rol !== 'anotador') return; // el admin no tiene restricción
+// Si quien guarda es un anotador: debe tener el juego asignado (o ser de su
+// equipo) y las líneas solo pueden ser de jugadores de ESE juego. Si el juego
+// no se le asignó, se mantiene la regla antigua: solo jugadores de su equipo.
+async function validarPermisoAnotador(juego_id, lineas, usuario) {
+  if (!usuario || usuario.rol !== 'anotador') return;
   const juego = await juegosModel.obtenerPorId(juego_id);
-  if (!juego || Number(juego.anotador_id) !== Number(usuario.id)) {
-    const err = new Error('Este juego no está asignado a tu usuario de anotador');
+  if (!juego) { const e = new Error('Juego no encontrado'); e.status = 404; throw e; }
+  const modo = await validarAnotadorJuego(juego, usuario);
+  const mapa = await jugadoresModel.obtenerEquiposDeRoster(lineas.map((l) => l.roster_id));
+  const equiposJuego = [Number(juego.equipo_local_id), Number(juego.equipo_visitante_id)];
+  const ok = lineas.every((l) => modo === 'asignado'
+    ? equiposJuego.includes(Number(mapa[l.roster_id]))
+    : Number(mapa[l.roster_id]) === Number(usuario.equipo_inscrito_id));
+  if (!ok) {
+    const err = new Error('Hay jugadores que no pertenecen a este juego / a tu equipo');
     err.status = 403;
     throw err;
   }
@@ -43,13 +52,13 @@ async function obtenerEstadisticas(juego_id) {
 
 async function guardarBateo(juego_id, lineas, usuario) {
   validarLineas(lineas);
-  await validarPermisoAnotador(juego_id, usuario);
+  await validarPermisoAnotador(juego_id, lineas, usuario);
   return estBateoModel.guardar(juego_id, lineas);
 }
 
 async function guardarPitcheo(juego_id, lineas, usuario) {
   validarLineas(lineas);
-  await validarPermisoAnotador(juego_id, usuario);
+  await validarPermisoAnotador(juego_id, lineas, usuario);
   const juegoData = await juegosModel.obtenerPorId(juego_id);
   if (!juegoData) {
     const err = new Error('Juego no encontrado');
@@ -61,7 +70,7 @@ async function guardarPitcheo(juego_id, lineas, usuario) {
 
 async function guardarFildeo(juego_id, lineas, usuario) {
   validarLineas(lineas);
-  await validarPermisoAnotador(juego_id, usuario);
+  await validarPermisoAnotador(juego_id, lineas, usuario);
   for (const l of lineas) {
     if (!l.posicion) {
       const err = new Error('Cada línea de fildeo necesita posicion');

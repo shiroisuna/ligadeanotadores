@@ -35,7 +35,9 @@ async function obtenerPorId(id) {
             elq.nombre AS equipo_local, elq.logo_url AS logo_local,
             evq.nombre AS equipo_visitante, evq.logo_url AS logo_visitante,
             es.nombre AS estadio, es.direccion AS estadio_direccion,
-            c.nombre AS categoria_nombre, c.lleva_pitcheo, c.num_innings
+            c.nombre AS categoria_nombre,
+            CONCAT(jm.nombres, ' ', jm.apellidos) AS mvp_nombre,
+            rm.equipo_inscrito_id AS mvp_equipo_inscrito_id
      FROM juegos j
      JOIN equipos_inscritos el ON el.id = j.equipo_local_id
      JOIN equipos elq ON elq.id = el.equipo_id
@@ -44,6 +46,8 @@ async function obtenerPorId(id) {
      LEFT JOIN estadios es ON es.id = j.estadio_id
      LEFT JOIN temporada_categoria tc ON tc.id = j.temporada_categoria_id
      LEFT JOIN categorias c ON c.id = tc.categoria_id
+     LEFT JOIN roster rm ON rm.id = j.mvp_roster_id
+     LEFT JOIN jugadores jm ON jm.id = rm.jugador_id
      WHERE j.id = ?`,
     [id]
   );
@@ -77,10 +81,7 @@ async function actualizar(id, datos) {
   for (const campo of campos) {
     if (datos[campo] !== undefined) {
       sets.push(`${campo} = ?`);
-      //valores.push(datos[campo]);
-
-            // Un campo vacío del formulario ('') se guarda como NULL, no como texto
-      valores.push(datos[campo] === '' ? null : datos[campo]);
+      valores.push(datos[campo]);
     }
   }
   if (!sets.length) return obtenerPorId(id);

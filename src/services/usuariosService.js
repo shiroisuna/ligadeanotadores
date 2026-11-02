@@ -27,9 +27,6 @@ async function crear({ email, password, rol, equipo_inscrito_id }) {
   if (!validarEmail(email)) throw fallo('Correo inválido');
   validarPassword(password);
   if (!ROLES.includes(rol)) throw fallo(`Rol inválido. Usa: ${ROLES.join(', ')}`);
-  if (rol === 'anotador' && !equipo_inscrito_id) {
-    throw fallo('Un anotador debe quedar atado a un equipo');
-  }
   if (await usuariosModel.buscarPorEmailIncluyendoInactivos(email)) {
     throw fallo('Ya existe un usuario con ese correo', 409);
   }
@@ -42,7 +39,6 @@ async function actualizar(id, { email, rol, equipo_inscrito_id }, quienEdita) {
   email = (email || '').trim().toLowerCase();
   if (!validarEmail(email)) throw fallo('Correo inválido');
   if (!ROLES.includes(rol)) throw fallo(`Rol inválido. Usa: ${ROLES.join(', ')}`);
-  if (rol === 'anotador' && !equipo_inscrito_id) throw fallo('Un anotador debe quedar atado a un equipo');
 
   const otro = await usuariosModel.buscarPorEmailIncluyendoInactivos(email);
   if (otro && Number(otro.id) !== Number(id)) throw fallo('Ya existe un usuario con ese correo', 409);

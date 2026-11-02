@@ -1,27 +1,34 @@
 const boxscoreModel = require('../models/boxscoreModel');
 const juegosModel = require('../models/juegosModel');
-
-function error(mensaje, status) {
-  const err = new Error(mensaje);
-  err.status = status;
-  return err;
-}
+const { validarAnotadorJuego } = require('./permisosJuegoService');
 
 function validarLineas(lineas) {
-  if (!Array.isArray(lineas)) throw error('Se espera un arreglo de líneas', 400);
+  if (!Array.isArray(lineas) || !lineas.length) {
+    const err = new Error('Se espera un arreglo de líneas con al menos un elemento');
+    err.status = 400;
+    throw err;
+  }
   for (const linea of lineas) {
-    if (!linea.roster_id) throw error('Cada línea del box score necesita un jugador', 400);
+    if (!linea.roster_id) {
+      const err = new Error('Cada línea del box score necesita roster_id');
+      err.status = 400;
+      throw err;
+    }
   }
 }
 
-// El anotador solo puede llenar el box score del juego que tiene asignado
-async function validarJuego(juego_id, usuario) {
+// Vista pública: si el resultado del juego aún no fue aprobado por el
+// administrador, no se publica el box score.
+async function obtenerBoxscorePublico(juego_id) {
   const juego = await juegosModel.obtenerPorId(juego_id);
-  if (!juego) throw error('Juego no encontrado', 404);
-  if (usuario?.rol === 'anotador' && Number(juego.anotador_id) !== Number(usuario.id)) {
-    throw error('Este juego no está asignado a tu usuario de anotador', 403);
-  }
-  return juego;
+  if (!juego || !Number(juego.resultado_aprobado)) return { bateo: [], pitcheo: [], pendiente: true };
+  return { ...(await obtenerBoxscore(juego_id)), pendiente: false };
+}
+
+async function permiso(juego_id, usuario) {
+  const juego = await juegosModel.obtenerPorId(juego_id);
+  if (!juego) { const e = new Error('Juego no encontrado'); e.status = 404; throw e; }
+  await validarAnotadorJuego(juego, usuario);
 }
 
 async function obtenerBoxscore(juego_id) {
@@ -34,17 +41,20 @@ async function obtenerBoxscore(juego_id) {
 
 async function guardarBateo(juego_id, lineas, usuario) {
   validarLineas(lineas);
-  await validarJuego(juego_id, usuario);
-  return boxscoreModel.guardarBateo(juego_id, lineas, usuario);
+  await permiso(juego_id, usuario);
+  return boxscoreModel.guardarBateo(juego_id, lineas);
 }
 
 async function guardarPitcheo(juego_id, lineas, usuario) {
   validarLineas(lineas);
-  await validarJuego(juego_id, usuario);
-  if (lineas.length && !(await boxscoreModel.juegoLlevaPitcheo(juego_id))) {
-    throw error('La categoría de este juego no lleva estadística de pitcheo', 400);
+  await permiso(juego_id, usuario);
+  const llevaPitcheo = await boxscoreModel.juegoLlevaPitcheo(juego_id);
+  if (!llevaPitcheo) {
+    const err = new Error('La categoría de este juego no lleva estadística de pitcheo');
+    err.status = 400;
+    throw err;
   }
-  return boxscoreModel.guardarPitcheo(juego_id, lineas, usuario);
+  return boxscoreModel.guardarPitcheo(juego_id, lineas);
 }
 
 async function eliminarBateo(id) {
@@ -55,4 +65,4 @@ async function eliminarPitcheo(id) {
   return boxscoreModel.eliminarPitcheo(id);
 }
 
-module.exports = { obtenerBoxscore, guardarBateo, guardarPitcheo, eliminarBateo, eliminarPitcheo };
+module.exports = { obtenerBoxscore, obtenerBoxscorePublico, permiso, guardarBateo, guardarPitcheo, eliminarBateo, eliminarPitcheo };

@@ -11,6 +11,9 @@ router.get('/pitcheo', controller.pitcheo);
 // Líderes defensivos por posición (con umbral de innings jugados)
 // GET /api/lideres/defensiva?temporada_categoria_id=1&limit=10
 router.get('/defensiva', controller.defensiva);
+// Mínimos reglamentarios vigentes para la categoría (para mostrarlos en pantalla)
+// GET /api/lideres/reglas?temporada_categoria_id=1
+router.get('/reglas', controller.reglas);
 // Perfil completo (todas las columnas) de un jugador
 router.get('/jugador/:roster_id', controller.porJugador);
 // Estadística completa de todo el roster de un equipo, en esta categoría

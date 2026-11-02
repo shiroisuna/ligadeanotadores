@@ -1,7 +1,16 @@
 const boxscoreService = require('../services/boxscoreService');
 
 async function obtener(req, res, next) {
-  try { res.json(await boxscoreService.obtenerBoxscore(req.params.juego_id)); } catch (err) { next(err); }
+  try { res.json(await boxscoreService.obtenerBoxscorePublico(req.params.juego_id)); } catch (err) { next(err); }
+}
+
+// Para la pantalla de carga (administrador / anotador con permiso): trae
+// todo, aprobado o no.
+async function obtenerParaEdicion(req, res, next) {
+  try {
+    await boxscoreService.permiso(req.params.juego_id, req.usuario);
+    res.json(await boxscoreService.obtenerBoxscore(req.params.juego_id));
+  } catch (err) { next(err); }
 }
 
 // body: { lineas: [ { roster_id, vb, ca, hc, ... }, ... ] }
@@ -25,4 +34,4 @@ async function eliminarPitcheo(req, res, next) {
   try { await boxscoreService.eliminarPitcheo(req.params.id); res.status(204).send(); } catch (err) { next(err); }
 }
 
-module.exports = { obtener, guardarBateo, guardarPitcheo, eliminarBateo, eliminarPitcheo };
+module.exports = { obtener, obtenerParaEdicion, guardarBateo, guardarPitcheo, eliminarBateo, eliminarPitcheo };

@@ -35,4 +35,14 @@ async function guardarEntradas(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { listar, obtener, crear, actualizar, eliminar, listarEntradas, guardarEntradas };
+async function listarAnotadores(req, res, next) {
+  try { res.json(await juegosService.listarAnotadoresDeJuego(req.params.id)); } catch (err) { next(err); }
+}
+async function asignarAnotadores(req, res, next) {
+  try { res.json(await juegosService.asignarAnotadores(req.params.id, req.body.usuario_ids)); } catch (err) { next(err); }
+}
+async function misAsignados(req, res, next) {
+  try { res.json(await juegosService.misJuegosAsignados(req.usuario)); } catch (err) { next(err); }
+}
+
+module.exports = { listarAnotadores, asignarAnotadores, misAsignados, listar, obtener, crear, actualizar, eliminar, listarEntradas, guardarEntradas };

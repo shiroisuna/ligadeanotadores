@@ -1,5 +1,6 @@
-const boxscoreModel = require('../models/boxscoreModel');
 const juegosModel = require('../models/juegosModel');
+const anotadorJuegosModel = require('../models/anotadorJuegosModel');
+const { validarAnotadorJuego } = require('./permisosJuegoService');
 
 function noEncontrado(mensaje) {
   const err = new Error(mensaje);
@@ -11,20 +12,6 @@ function sinPermiso(mensaje) {
   const err = new Error(mensaje);
   err.status = 403;
   return err;
-}
-
-// Si quien actúa es anotador (no administrador), su equipo debe ser
-// local o visitante en ESE juego — nunca puede tocar el resultado ni
-// las entradas de un juego ajeno.
-function validarPermisoAnotador(juego, usuario) {
-  if (!usuario || usuario.rol !== 'anotador') return; // el admin no tiene restricción
-  // El anotador es externo: puede cargar el juego que tiene asignado
-  const asignado = Number(juego.anotador_id) === Number(usuario.id);
-  const suEquipo = usuario.equipo_inscrito_id;
-  const esSuEquipo = !!suEquipo && (juego.equipo_local_id === suEquipo || juego.equipo_visitante_id === suEquipo);
-  if (!asignado && !esSuEquipo) {
-    throw sinPermiso('Este juego no está asignado a tu usuario de anotador');
-  }
 }
 
 async function listar(filtros) {
@@ -56,7 +43,7 @@ async function crear(datos) {
 
 async function actualizar(id, datos, usuario) {
   const juego = await obtener(id);
-  validarPermisoAnotador(juego, usuario);
+  await validarAnotadorJuego(juego, usuario);
   return juegosModel.actualizar(id, datos);
 }
 
@@ -74,16 +61,38 @@ async function listarEntradas(juego_id) {
 
 async function guardarEntradas(juego_id, entradas, usuario) {
   const juego = await obtener(juego_id);
-  validarPermisoAnotador(juego, usuario);
+  await validarAnotadorJuego(juego, usuario);
   if (!Array.isArray(entradas) || !entradas.length) {
     const err = new Error('entradas debe ser un arreglo con al menos un elemento');
     err.status = 400;
     throw err;
   }
-  const guardadas = await juegosModel.guardarEntradas(juego_id, entradas);
-  // La línea de anotación alimenta las carreras del resultado (queda pendiente de aprobación)
-  await boxscoreModel.actualizarResultado(juego_id, usuario);
-  return guardadas;
+  return juegosModel.guardarEntradas(juego_id, entradas);
 }
 
-module.exports = { listar, obtener, crear, actualizar, eliminar, listarEntradas, guardarEntradas };
+// ---- asignación de anotadores por juego (solo administrador) ----
+async function listarAnotadoresDeJuego(juego_id) {
+  await obtener(juego_id);
+  const [asignados, disponibles] = await Promise.all([
+    anotadorJuegosModel.listarPorJuego(juego_id),
+    anotadorJuegosModel.usuariosAnotadoresActivos(),
+  ]);
+  return { asignados, disponibles };
+}
+
+async function asignarAnotadores(juego_id, usuario_ids) {
+  await obtener(juego_id);
+  if (!Array.isArray(usuario_ids)) {
+    const err = new Error('usuario_ids debe ser un arreglo'); err.status = 400; throw err;
+  }
+  const validos = new Set((await anotadorJuegosModel.usuariosAnotadoresActivos()).map((u) => u.id));
+  const limpios = [...new Set(usuario_ids.map(Number))].filter((id) => validos.has(id));
+  await anotadorJuegosModel.reemplazarPorJuego(juego_id, limpios);
+  return { ok: true, asignados: limpios.length };
+}
+
+async function misJuegosAsignados(usuario) {
+  return anotadorJuegosModel.juegosDeUsuario(usuario.id);
+}
+
+module.exports = { listarAnotadoresDeJuego, asignarAnotadores, misJuegosAsignados, listar, obtener, crear, actualizar, eliminar, listarEntradas, guardarEntradas };

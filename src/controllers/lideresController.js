@@ -33,4 +33,8 @@ async function defensiva(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { bateo, pitcheo, porEquipo, porJugador, defensiva };
+async function reglas(req, res, next) {
+  try { res.json(await lideresService.reglas(req.query.temporada_categoria_id)); } catch (err) { next(err); }
+}
+
+module.exports = { bateo, pitcheo, porEquipo, porJugador, defensiva, reglas };

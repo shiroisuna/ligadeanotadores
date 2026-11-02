@@ -71,4 +71,9 @@ function limiteSeguroDefensiva(limit) {
   return Math.min(n, 50);
 }
 
-module.exports = { lideresBateo, lideresPitcheo, estadisticasPorEquipo, estadisticasPorJugador, lideresDefensiva };
+async function reglas(temporada_categoria_id) {
+  validarTemporadaCategoria(temporada_categoria_id);
+  return lideresModel.reglasDeCategoria(temporada_categoria_id);
+}
+
+module.exports = { lideresBateo, lideresPitcheo, estadisticasPorEquipo, estadisticasPorJugador, lideresDefensiva, reglas };
