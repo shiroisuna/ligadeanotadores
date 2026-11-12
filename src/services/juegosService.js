@@ -63,7 +63,7 @@ async function validarCambiosProgramacion(juego, datos) {
   const nuevaFase = datos.fase ?? juego.fase ?? 'eliminatoria';
   const cambiaEquipos = nuevoLocal !== Number(juego.equipo_local_id) || nuevoVisit !== Number(juego.equipo_visitante_id);
   const cambiaFase = nuevaFase !== (juego.fase || 'eliminatoria');
-  if (!cambiaEquipos && !cambiaFase) return;
+  if (!cambiaEquipos && !cambiaFase) return { accion: null };
 
   if (nuevoLocal === nuevoVisit) throw error400('El equipo local y visitante no pueden ser el mismo');
   fasesService.validarFase(nuevaFase);
@@ -79,16 +79,24 @@ async function validarCambiosProgramacion(juego, datos) {
       }
     }
   }
-  if (cambiaEquipos) {
-    // Con estadísticas ya cargadas, cambiar los equipos dejaría datos de jugadores del equipo equivocado.
-    const datosCargados = await juegosModel.contarDatos(juego.id);
-    const total = Object.entries(datosCargados)
-      .filter(([t]) => ['bateo_juego', 'pitcheo_juego', 'est_bateo', 'est_pitcheo', 'est_fildeo', 'entradas_juego'].includes(t))
-      .reduce((a, [, n]) => a + n, 0);
-    if (total > 0) {
-      throw error400('Este juego ya tiene box score/estadísticas cargadas; no se pueden cambiar los equipos. Elimina el juego y créalo de nuevo, o corrige los datos sin cambiar equipos.');
-    }
+  if (!cambiaEquipos) return { accion: null };
+
+  // ¿Mismos dos equipos pero invertidos (local <-> visitante)? Se puede hacer sin perder nada.
+  const esIntercambio = nuevoLocal === Number(juego.equipo_visitante_id) && nuevoVisit === Number(juego.equipo_local_id);
+  if (esIntercambio) return { accion: 'intercambiar' };
+
+  // Otros equipos: si ya hay box score/estadísticas, solo con confirmación explícita (se borran).
+  const datosCargados = await juegosModel.contarDatos(juego.id);
+  const total = Object.entries(datosCargados)
+    .filter(([t]) => ['bateo_juego', 'pitcheo_juego', 'est_bateo', 'est_pitcheo', 'est_fildeo', 'entradas_juego'].includes(t))
+    .reduce((a, [, n]) => a + n, 0);
+  const tieneResultado = juego.carreras_local != null || juego.carreras_visitante != null;
+  if ((total > 0 || tieneResultado) && !datos.confirmar_borrado_datos) {
+    const err = error400('Este juego tiene resultado/box score cargado. Al cambiar a otros equipos se borrarán esos datos; confirma para continuar.');
+    err.codigo = 'REQUIERE_CONFIRMACION';
+    throw err;
   }
+  return { accion: (total > 0 || tieneResultado) ? 'limpiar' : null };
 }
 
 async function actualizar(id, datos, usuario) {
@@ -99,8 +107,15 @@ async function actualizar(id, datos, usuario) {
     // El anotador carga resultados; no puede reprogramar ni cambiar equipos.
     delete copia.equipo_local_id; delete copia.equipo_visitante_id; delete copia.fase;
   } else {
-    await validarCambiosProgramacion(juego, copia);
+    const { accion } = await validarCambiosProgramacion(juego, copia);
+    if (accion === 'intercambiar') {
+      await juegosModel.intercambiarLados(id);
+      delete copia.equipo_local_id; delete copia.equipo_visitante_id;   // ya aplicados
+    } else if (accion === 'limpiar') {
+      await juegosModel.limpiarDatosJuego(id);
+    }
   }
+  delete copia.confirmar_borrado_datos;
   return juegosModel.actualizar(id, copia);
 }
 

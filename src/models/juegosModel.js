@@ -115,6 +115,61 @@ async function contarDatos(id) {
   return conteo;
 }
 
+// Intercambia local <-> visitante conservando todo el resultado: equipos y todos los datos "por lado".
+// (Se hace leyendo y escribiendo valores explícitos: un UPDATE a=b, b=a se evalúa de izquierda a derecha.)
+const PARES_LADO = [
+  ['carreras_local', 'carreras_visitante'], ['hits_local', 'hits_visitante'],
+  ['errores_local', 'errores_visitante'], ['io_local', 'io_visitante'],
+  ['id_local', 'id_visitante'], ['qb_local', 'qb_visitante'],
+];
+
+async function intercambiarLados(id) {
+  const [rows] = await pool.execute('SELECT * FROM juegos WHERE id = ?', [id]);
+  const j = rows[0];
+  const sets = ['equipo_local_id = ?', 'equipo_visitante_id = ?'];
+  const valores = [j.equipo_visitante_id, j.equipo_local_id];
+  for (const [a, b] of PARES_LADO) {
+    if (a in j && b in j) { sets.push(`${a} = ?`, `${b} = ?`); valores.push(j[b], j[a]); }
+  }
+  valores.push(id);
+  await pool.execute(`UPDATE juegos SET ${sets.join(', ')} WHERE id = ?`, valores);
+}
+
+// Cambio a OTROS equipos: borra box score, estadísticas, entradas e incidencias del juego y limpia el
+// marcador. Conserva fecha, estadio, árbitros, anotadores asignados y la programación.
+const TABLAS_DATOS = ['bateo_juego', 'pitcheo_juego', 'est_bateo', 'est_pitcheo', 'est_fildeo', 'entradas_juego', 'incidencias'];
+
+async function limpiarDatosJuego(id) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    for (const t of TABLAS_DATOS) {
+      try { await conn.execute(`DELETE FROM ${t} WHERE juego_id = ?`, [id]); }
+      catch (err) { if (err.code !== 'ER_NO_SUCH_TABLE') throw err; }
+    }
+    const nulos = ['carreras_local', 'carreras_visitante', 'hits_local', 'hits_visitante',
+      'errores_local', 'errores_visitante', 'io_local', 'id_local', 'io_visitante', 'id_visitante',
+      'qb_local', 'qb_visitante', 'equipo_ganador_id', 'mvp_roster_id'];
+    try {
+      await conn.execute(
+        `UPDATE juegos SET ${nulos.map((c) => `${c} = NULL`).join(', ')}, resultado_aprobado = 0, estado = 'programado' WHERE id = ?`, [id]);
+    } catch (err) {
+      if (err.code !== 'ER_BAD_NULL_ERROR') throw err;
+      // Si alguna columna no admite NULL, usar 0 en las numéricas del marcador
+      const ceros = ['carreras_local', 'carreras_visitante', 'hits_local', 'hits_visitante', 'errores_local', 'errores_visitante'];
+      const restantes = nulos.filter((c) => !ceros.includes(c));
+      await conn.execute(
+        `UPDATE juegos SET ${ceros.map((c) => `${c} = 0`).join(', ')}, ${restantes.map((c) => `${c} = NULL`).join(', ')}, resultado_aprobado = 0, estado = 'programado' WHERE id = ?`, [id]);
+    }
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 async function eliminar(id) {
   const conn = await pool.getConnection();
   try {
@@ -169,6 +224,6 @@ async function guardarEntradas(juego_id, entradas) {
 }
 
 module.exports = {
-  listar, obtenerPorId, crear, actualizar, eliminar, contarDatos,
+  listar, obtenerPorId, crear, actualizar, eliminar, contarDatos, intercambiarLados, limpiarDatosJuego,
   listarEntradas, guardarEntradas,
 };

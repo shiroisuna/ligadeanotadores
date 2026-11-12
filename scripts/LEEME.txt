@@ -1,0 +1,27 @@
+MIGRACIONES PARA EL SERVIDOR (base ligabeisbol)
+================================================
+Ninguna borra datos: solo agregan columnas/tablas y reemplazan una vista.
+Antes: haz el respaldo (ya lo tienes: respaldo_antes_lote8_2026-11-12.sql).
+
+Subir al servidor:   scp -P 37941 *.sql jmarin@162.212.155.217:/home/jmarin/
+Ejecutar, uno por uno, en este orden, desde /home/jmarin:
+
+  mysql -u ligabeisbol -p ligabeisbol < 01_anotadores_oficiales.sql
+  mysql -u ligabeisbol -p ligabeisbol < 02_io_id_qb.sql
+  mysql -u ligabeisbol -p ligabeisbol < 03_lleva_defensiva.sql     (ver nota: el UPDATE se hace a mano)
+  mysql -u ligabeisbol -p ligabeisbol < 04_posicion_por_inning.sql
+  mysql -u ligabeisbol -p ligabeisbol < 05_shortfield.sql
+  mysql -u ligabeisbol -p ligabeisbol < 06_fases.sql
+
+Si alguno da error, detente y pasa el mensaje; los anteriores ya aplicados se pueden repetir sin problema
+(usan IF NOT EXISTS), salvo 05 que es seguro de repetir también.
+
+OPCIONAL_lances_lanzamientos.sql: solo si NO la ejecutaste antes. Comprueba con:
+  mysql -u ligabeisbol -p ligabeisbol -e "SHOW COLUMNS FROM est_pitcheo LIKE 'tl';"
+Si ese comando muestra una fila, ya está aplicada: no la corras.
+(migracion_anotador_juegos.sql ya la ejecutaste; no se incluye.)
+
+Que modifica datos existentes (sin borrar):
+  - 03: tu UPDATE manual marca categorías como "sin defensiva".
+  - OPCIONAL lances: recalcula TL = O + A + E en est_fildeo.
+  - 02 y 06: reemplazan/crean vistas (no guardan datos; se recalculan solas).
