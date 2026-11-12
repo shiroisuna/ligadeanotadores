@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const reglas = require('../config/ReglasLiderato');
+const reglas = require('../config/reglasLiderato');
 const { comparador } = reglas;
 
 // stat -> definición. 'promedio' = estadística de promedio (exige mínimo reglamentario)
@@ -58,7 +58,7 @@ async function reglasDeCategoria(temporada_categoria_id) {
     num_innings: numInnings,
     bateo_al_por_juego: reglas.alPorJuego(numInnings),
     pitcheo_il_por_juego: reglas.ilPorJuego(numInnings),
-    defensa_ij_por_juego: reglas.DEFENSA_IJ_POR_JUEGO,
+    defensa_ij_por_juego: reglas.defensaIjPorJuego(numInnings),
   };
 }
 
@@ -153,7 +153,7 @@ async function lideresBateo(temporada_categoria_id, stat, posicion, limit) {
 async function lideresPitcheo(temporada_categoria_id, stat, limit) {
   const def = STATS_PITCHEO[stat];
   const [rows] = await pool.execute(
-    `SELECT r.id AS roster_id, jg.nombres, jg.apellidos, jg.foto_url,
+    `SELECT r.id AS roster_id, jg.nombres, jg.apellidos, jg.foto_url, jg.lado,
             ei.temporada_categoria_id, ei.id AS equipo_inscrito_id,
             eq.nombre AS equipo, eq.logo_url,
             SUM(ep.g) AS ganados, SUM(ep.p) AS perdidos, SUM(ep.s) AS salvados,
@@ -167,7 +167,7 @@ async function lideresPitcheo(temporada_categoria_id, stat, limit) {
      JOIN equipos_inscritos ei ON ei.id = r.equipo_inscrito_id
      JOIN equipos eq ON eq.id = ei.equipo_id
      WHERE ep.aprobado = 1 AND ei.temporada_categoria_id = ?
-     GROUP BY r.id, jg.nombres, jg.apellidos, jg.foto_url, ei.temporada_categoria_id,
+     GROUP BY r.id, jg.nombres, jg.apellidos, jg.foto_url, jg.lado, ei.temporada_categoria_id,
               ei.id, eq.nombre, eq.logo_url`,
     [temporada_categoria_id]
   );

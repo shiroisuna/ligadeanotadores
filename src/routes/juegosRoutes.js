@@ -14,6 +14,7 @@ router.get('/:id/entradas', controller.listarEntradas);
 // Programar / eliminar un juego: exclusivo del administrador —
 // el anotador NUNCA puede crear juegos.
 router.post('/', requireAuth, requireRole('administrador'), controller.crear);
+router.get('/:id/resumen-datos', requireAuth, requireRole('administrador'), controller.resumenDatos);
 router.delete('/:id', requireAuth, requireRole('administrador'), controller.eliminar);
 
 // Asignar anotadores a un juego específico: solo administrador

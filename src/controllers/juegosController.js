@@ -2,8 +2,8 @@ const juegosService = require('../services/juegosService');
 
 async function listar(req, res, next) {
   try {
-    const { temporada_categoria_id, equipo_inscrito_id, estado } = req.query;
-    res.json(await juegosService.listar({ temporada_categoria_id, equipo_inscrito_id, estado }));
+    const { temporada_categoria_id, equipo_inscrito_id, estado, fase } = req.query;
+    res.json(await juegosService.listar({ temporada_categoria_id, equipo_inscrito_id, estado, fase }));
   } catch (err) { next(err); }
 }
 
@@ -17,6 +17,10 @@ async function crear(req, res, next) {
 
 async function actualizar(req, res, next) {
   try { res.json(await juegosService.actualizar(req.params.id, req.body, req.usuario)); } catch (err) { next(err); }
+}
+
+async function resumenDatos(req, res, next) {
+  try { res.json(await juegosService.resumenDatos(req.params.id)); } catch (err) { next(err); }
 }
 
 async function eliminar(req, res, next) {
@@ -45,4 +49,4 @@ async function misAsignados(req, res, next) {
   try { res.json(await juegosService.misJuegosAsignados(req.usuario)); } catch (err) { next(err); }
 }
 
-module.exports = { listarAnotadores, asignarAnotadores, misAsignados, listar, obtener, crear, actualizar, eliminar, listarEntradas, guardarEntradas };
+module.exports = { resumenDatos, listarAnotadores, asignarAnotadores, misAsignados, listar, obtener, crear, actualizar, eliminar, listarEntradas, guardarEntradas };

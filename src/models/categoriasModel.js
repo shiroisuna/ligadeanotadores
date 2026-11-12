@@ -20,21 +20,21 @@ async function obtenerPorId(id) {
   return rows[0] || null;
 }
 
-async function crear({ disciplina_id, nombre, lleva_pitcheo, nivel_standings, num_innings, orden_visual }) {
+async function crear({ disciplina_id, nombre, lleva_pitcheo, lleva_defensiva, nivel_standings, num_innings, orden_visual }) {
   const [res] = await pool.execute(
-    `INSERT INTO categorias (disciplina_id, nombre, lleva_pitcheo, nivel_standings, num_innings, orden_visual)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [disciplina_id, nombre, lleva_pitcheo ? 1 : 0, nivel_standings || 'basico',
+    `INSERT INTO categorias (disciplina_id, nombre, lleva_pitcheo, lleva_defensiva, nivel_standings, num_innings, orden_visual)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [disciplina_id, nombre, lleva_pitcheo ? 1 : 0, lleva_defensiva === 0 || lleva_defensiva === false ? 0 : 1, nivel_standings || 'basico',
      num_innings || 7, orden_visual || 0]
   );
   return obtenerPorId(res.insertId);
 }
 
-async function actualizar(id, { disciplina_id, nombre, lleva_pitcheo, nivel_standings, num_innings, orden_visual }) {
+async function actualizar(id, { disciplina_id, nombre, lleva_pitcheo, lleva_defensiva, nivel_standings, num_innings, orden_visual }) {
   await pool.execute(
-    `UPDATE categorias SET disciplina_id=?, nombre=?, lleva_pitcheo=?,
+    `UPDATE categorias SET disciplina_id=?, nombre=?, lleva_pitcheo=?, lleva_defensiva=COALESCE(?, lleva_defensiva),
      nivel_standings=?, num_innings=?, orden_visual=? WHERE id=?`,
-    [disciplina_id, nombre, lleva_pitcheo ? 1 : 0, nivel_standings || 'basico',
+    [disciplina_id, nombre, lleva_pitcheo ? 1 : 0, lleva_defensiva === undefined ? null : (lleva_defensiva ? 1 : 0), nivel_standings || 'basico',
      num_innings || 7, orden_visual || 0, id]
   );
   return obtenerPorId(id);

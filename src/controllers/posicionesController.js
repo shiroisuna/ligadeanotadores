@@ -2,7 +2,7 @@ const posicionesService = require('../services/posicionesService');
 
 async function obtener(req, res, next) {
   try {
-    res.json(await posicionesService.obtener(req.query.temporada_categoria_id));
+    res.json(await posicionesService.obtener(req.query.temporada_categoria_id, req.query.fase));
   } catch (err) { next(err); }
 }
 

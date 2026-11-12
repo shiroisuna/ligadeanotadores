@@ -2,7 +2,7 @@ const pool = require('../config/db');
 
 // Igual que estFildeoModel, pero sin 'P' — los lanzadores no entran en el
 // ranking defensivo por posición (tienen su propia sección de Lanzamientos).
-const POSICIONES = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF'];
+const POSICIONES = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'SF'];
 
 const ETIQUETAS_POSICION = {
   'C':  '2.RECEPTOR',
@@ -13,6 +13,7 @@ const ETIQUETAS_POSICION = {
   'LF': '7.JARDINERO IZQUIERDO',
   'CF': '8.JARDINERO CENTRAL',
   'RF': '9.JARDINERO DERECHO',
+  'SF': '10.SHORTFIELD (CUARTO JARDINERO)',
 };
 
 function aved(o, a, e) {
@@ -21,7 +22,7 @@ function aved(o, a, e) {
   return Math.round(((o + a) / total) * 1000) / 1000;
 }
 
-const reglas = require('../config/ReglasLiderato');
+const reglas = require('../config/reglasLiderato');
 const { comparador } = reglas;
 const N = (v) => Number(v) || 0;
 
@@ -81,14 +82,14 @@ function criteriosFildeo(clave) {
   if (clave === 'C') {
     return [...base, [(r) => r.a, 'desc'], [(r) => r.atrapados_robando, 'desc'], [(r) => r.pb, 'asc'], [(r) => r.dp, 'desc']];
   }
-  if (['1B', 'LF', 'CF', 'RF', 'OF'].includes(clave)) {
+  if (['1B', 'LF', 'CF', 'RF', 'SF', 'OF'].includes(clave)) {
     return [...base, [(r) => r.o, 'desc'], [(r) => r.a, 'desc'], [(r) => r.dp, 'desc']];
   }
   return [...base, [(r) => r.a, 'desc'], [(r) => r.o, 'desc'], [(r) => r.dp, 'desc']];
 }
 
-function armarGrupo(jugadores, clave, juegosEq, limit) {
-  const porJuego = reglas.ijPorJuego(clave === 'C' ? 'C' : 'otras');
+function armarGrupo(jugadores, clave, juegosEq, limit, numInnings) {
+  const porJuego = reglas.ijPorJuego(clave === 'C' ? 'C' : 'otras', numInnings);
   const califican = jugadores
     .map((j) => {
       const minimo = Math.round(porJuego * (juegosEq[j.equipo_inscrito_id] || 0) * 10) / 10;
@@ -110,13 +111,17 @@ function armarGrupo(jugadores, clave, juegosEq, limit) {
 }
 
 // Top por posición. Mínimo reglamentario: innings jugados a la defensiva ≥
-// (juegos del equipo × 3.0 receptor / 4.0 otras posiciones). Se calcula POR GRUPO
+// (juegos del equipo × 0.5·entradas receptor / 0.67·entradas otras posiciones). Se calcula POR GRUPO
 // solo para presentar (si los equipos no tienen grupo todos caen en "General").
 async function lideresDefensiva(temporada_categoria_id, limit = 10) {
-  const [filas, juegosEq] = await Promise.all([
+  const [filas, juegosEq, [[cat]]] = await Promise.all([
     obtenerAcumuladoPorPosicion(temporada_categoria_id),
     juegosPorEquipo(temporada_categoria_id),
+    pool.execute(
+      `SELECT c.num_innings FROM temporada_categoria tc
+       JOIN categorias c ON c.id = tc.categoria_id WHERE tc.id = ?`, [temporada_categoria_id]),
   ]);
+  const numInnings = Number(cat && cat.num_innings) || 7;
 
   const BLOQUES = [
     ...POSICIONES.map((p) => ({ clave: p, etiqueta: ETIQUETAS_POSICION[p], posiciones: [p] })),
@@ -137,7 +142,7 @@ async function lideresDefensiva(temporada_categoria_id, limit = 10) {
     }
     const grupos = Object.keys(porGrupo).sort().map((grupo) => ({
       grupo,
-      ...armarGrupo(porGrupo[grupo], bloque.clave, juegosEq, limit),
+      ...armarGrupo(porGrupo[grupo], bloque.clave, juegosEq, limit, numInnings),
     }));
     resultado.push({ posicion: bloque.clave, etiqueta: bloque.etiqueta, grupos });
   }

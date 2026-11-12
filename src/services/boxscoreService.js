@@ -2,8 +2,9 @@ const boxscoreModel = require('../models/boxscoreModel');
 const juegosModel = require('../models/juegosModel');
 const { validarAnotadorJuego } = require('./permisosJuegoService');
 
-function validarLineas(lineas) {
-  if (!Array.isArray(lineas) || !lineas.length) {
+// Con equipo_inscrito_id la lista reemplaza todo lo del equipo, así que puede venir vacía (limpiar).
+function validarLineas(lineas, equipo_inscrito_id) {
+  if (!Array.isArray(lineas) || (!lineas.length && !equipo_inscrito_id)) {
     const err = new Error('Se espera un arreglo de líneas con al menos un elemento');
     err.status = 400;
     throw err;
@@ -39,14 +40,33 @@ async function obtenerBoxscore(juego_id) {
   return { bateo, pitcheo };
 }
 
-async function guardarBateo(juego_id, lineas, usuario) {
-  validarLineas(lineas);
-  await permiso(juego_id, usuario);
-  return boxscoreModel.guardarBateo(juego_id, lineas);
+// Verifica que el equipo sea uno de los dos del juego y que cada jugador sea de ese equipo.
+async function validarEquipo(juego_id, lineas, equipo_inscrito_id) {
+  if (!equipo_inscrito_id) return;
+  const juego = await juegosModel.obtenerPorId(juego_id);
+  const eq = Number(equipo_inscrito_id);
+  if (![Number(juego.equipo_local_id), Number(juego.equipo_visitante_id)].includes(eq)) {
+    const err = new Error('El equipo no participa en este juego');
+    err.status = 400;
+    throw err;
+  }
+  const delEquipo = new Set(await boxscoreModel.rosterIdsDeEquipo(eq));
+  if (lineas.some((l) => !delEquipo.has(Number(l.roster_id)))) {
+    const err = new Error('Hay jugadores que no pertenecen al equipo que se está guardando');
+    err.status = 400;
+    throw err;
+  }
 }
 
-async function guardarPitcheo(juego_id, lineas, usuario) {
-  validarLineas(lineas);
+async function guardarBateo(juego_id, lineas, usuario, equipo_inscrito_id) {
+  validarLineas(lineas, equipo_inscrito_id);
+  await permiso(juego_id, usuario);
+  await validarEquipo(juego_id, lineas, equipo_inscrito_id);
+  return boxscoreModel.guardarBateo(juego_id, lineas, equipo_inscrito_id);
+}
+
+async function guardarPitcheo(juego_id, lineas, usuario, equipo_inscrito_id) {
+  validarLineas(lineas, equipo_inscrito_id);
   await permiso(juego_id, usuario);
   const llevaPitcheo = await boxscoreModel.juegoLlevaPitcheo(juego_id);
   if (!llevaPitcheo) {
@@ -54,7 +74,8 @@ async function guardarPitcheo(juego_id, lineas, usuario) {
     err.status = 400;
     throw err;
   }
-  return boxscoreModel.guardarPitcheo(juego_id, lineas);
+  await validarEquipo(juego_id, lineas, equipo_inscrito_id);
+  return boxscoreModel.guardarPitcheo(juego_id, lineas, equipo_inscrito_id);
 }
 
 async function eliminarBateo(id) {

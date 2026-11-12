@@ -16,13 +16,13 @@ async function obtenerParaEdicion(req, res, next) {
 // body: { lineas: [ { roster_id, vb, ca, hc, ... }, ... ] }
 async function guardarBateo(req, res, next) {
   try {
-    res.json(await boxscoreService.guardarBateo(req.params.juego_id, req.body.lineas, req.usuario));
+    res.json(await boxscoreService.guardarBateo(req.params.juego_id, req.body.lineas, req.usuario, req.body.equipo_inscrito_id));
   } catch (err) { next(err); }
 }
 
 async function guardarPitcheo(req, res, next) {
   try {
-    res.json(await boxscoreService.guardarPitcheo(req.params.juego_id, req.body.lineas, req.usuario));
+    res.json(await boxscoreService.guardarPitcheo(req.params.juego_id, req.body.lineas, req.usuario, req.body.equipo_inscrito_id));
   } catch (err) { next(err); }
 }
 

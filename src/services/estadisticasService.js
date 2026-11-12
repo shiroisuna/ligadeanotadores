@@ -71,6 +71,12 @@ async function guardarPitcheo(juego_id, lineas, usuario) {
 async function guardarFildeo(juego_id, lineas, usuario) {
   validarLineas(lineas);
   await validarPermisoAnotador(juego_id, lineas, usuario);
+  const juegoF = await juegosModel.obtenerPorId(juego_id);
+  if (juegoF && Number(juegoF.lleva_defensiva) === 0) {
+    const err = new Error('La categoría de este juego no lleva estadística defensiva');
+    err.status = 400;
+    throw err;
+  }
   for (const l of lineas) {
     if (!l.posicion) {
       const err = new Error('Cada línea de fildeo necesita posicion');

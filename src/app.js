@@ -13,6 +13,7 @@ const juegosRoutes           = require('./routes/juegosRoutes');
 const boxscoreRoutes         = require('./routes/boxscoreRoutes');
 const estadisticasRoutes     = require('./routes/estadisticasRoutes');
 const posicionesRoutes       = require('./routes/posicionesRoutes');
+const fasesRoutes            = require('./routes/fasesRoutes');
 const lideresRoutes          = require('./routes/lideresRoutes');
 const controlLanzadoresRoutes = require('./routes/controlLanzadoresRoutes');
 const fotosRoutes            = require('./routes/fotosRoutes');
@@ -25,6 +26,7 @@ const incidenciasRoutes = require('./routes/incidenciasRoutes');
 const usuariosRoutes = require('./routes/usuariosRoutes');
 const estadiosRoutes = require('./routes/estadiosRoutes');
 const arbitrosRoutes = require('./routes/arbitrosRoutes');
+const anotadoresOficialesRoutes = require('./routes/anotadoresOficialesRoutes');
 
 
 const app = express();
@@ -46,6 +48,7 @@ app.use('/api/juegos',            juegosRoutes);
 app.use('/api/boxscore',          boxscoreRoutes);
 app.use('/api/estadisticas',      estadisticasRoutes);
 app.use('/api/posiciones',        posicionesRoutes);
+app.use('/api/fases',              fasesRoutes);
 app.use('/api/lideres',           lideresRoutes);
 app.use('/api/control-lanzadores', controlLanzadoresRoutes);
 app.use('/api/fotos',             fotosRoutes);
@@ -58,6 +61,7 @@ app.use('/api/incidencias',       incidenciasRoutes);
 app.use('/api/usuarios',          usuariosRoutes);
 app.use('/api/estadios', estadiosRoutes);
 app.use('/api/arbitros', arbitrosRoutes);
+app.use('/api/anotadores-oficiales', anotadoresOficialesRoutes);
 
 
 app.use(errorHandler);

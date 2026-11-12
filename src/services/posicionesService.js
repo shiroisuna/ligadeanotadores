@@ -61,17 +61,19 @@ function ordenarMenorSoftbol(filasGrupo, juegos) {
   return resultado;
 }
 
-async function obtener(temporada_categoria_id) {
+async function obtener(temporada_categoria_id, fase) {
+  fase = fase || 'eliminatoria';
+  require('./fasesService').validarFase(fase);
   if (!temporada_categoria_id) {
     const err = new Error('temporada_categoria_id es requerido');
     err.status = 400;
     throw err;
   }
-  const filas = await posicionesModel.obtener(temporada_categoria_id);
+  const filas = await posicionesModel.obtener(temporada_categoria_id, fase);
   const rama = clasificarRama(await posicionesModel.disciplinaDeCategoria(temporada_categoria_id));
   if (rama === 'mayor') return filas;   // Béisbol Mayor: criterio propio (no aplica confrontación directa)
 
-  const juegos = await posicionesModel.juegosAprobados(temporada_categoria_id);
+  const juegos = await posicionesModel.juegosAprobados(temporada_categoria_id, fase);
   const grupos = {};
   for (const f of filas) {
     const g = f.grupo || '';
